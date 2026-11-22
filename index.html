@@ -1,2339 +1,819 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Jalwa.Game — WinGo Color Prediction</title>
   <style>
     :root {
-      --bg-deep: #050121;
-      --bg-navy: #09062c;
-      --bg-card: #0e1342;
-      --bg-input: #0a1847;
-      --mint: #22d3aa;
-      --mint-dark: #10b981;
-      --blue-hdr: #2563eb;
-      --blue-pill: #60a5fa;
-      --orange-pill: #f59e0b;
-      --green-btn: #16a34a;
-      --violet-btn: #8b5cf6;
-      --red-btn: #ef4444;
-      --text-main: #ffffff;
-      --text-muted: #94a3b8;
-      --border-soft: rgba(255, 255, 255, 0.1);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    html, body {
-      background-color: #020012;
-      color: var(--text-main);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    .app-shell {
-      width: 100%;
-      max-width: 460px;
-      min-height: 100vh;
-      margin: 0 auto;
-      background: var(--bg-deep);
-      position: relative;
-      box-shadow: 0 0 40px rgba(0, 0, 0, 0.75);
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* ==================== AUTH SCREEN ==================== */
-    .auth-screen {
-      min-height: 100vh;
-      padding: 16px 20px 28px;
-      background: radial-gradient(circle at 50% 0%, #141046 0%, var(--bg-deep) 68%);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .auth-top-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 18px;
-    }
-
-    .icon-btn {
-      background: transparent;
-      border: none;
-      color: #fff;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 20px;
-    }
-
-    .icon-btn:active {
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .brand-logo {
-      font-size: 24px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      color: #fff;
-      display: inline-flex;
-      align-items: baseline;
-      user-select: none;
-    }
-
-    .brand-logo span.game-tag {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--mint);
-      margin-left: 2px;
-    }
-
-    .lang-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #fff;
-      cursor: pointer;
-    }
-
-    .auth-title-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 22px;
-    }
-
-    .auth-title-icon {
-      width: 30px;
-      height: 30px;
-      color: var(--mint);
-      margin-bottom: 6px;
-    }
-
-    .auth-title-text {
-      font-size: 17px;
-      font-weight: 700;
-      color: #fff;
-      padding-bottom: 8px;
-      border-bottom: 2.5px solid var(--mint);
-      min-width: 175px;
-      text-align: center;
-    }
-
-    .field-group {
-      margin-bottom: 16px;
-    }
-
-    .field-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #e2e8f0;
-      margin-bottom: 8px;
-    }
-
-    .field-label svg {
-      color: var(--mint);
-      flex-shrink: 0;
-    }
-
-    .phone-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .code-select {
-      width: 86px;
-      height: 48px;
-      background: var(--bg-input);
-      border: 1px solid rgba(56, 189, 248, 0.22);
-      border-radius: 10px;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 700;
-      padding: 0 8px;
-      outline: none;
-    }
-
-    .input-box {
-      flex: 1;
-      height: 48px;
-      background: var(--bg-input);
-      border: 1px solid rgba(56, 189, 248, 0.22);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      padding: 0 14px;
-      position: relative;
-    }
-
-    .input-box:focus-within {
-      border-color: var(--mint);
-    }
-
-    .input-box input {
-      width: 100%;
-      height: 100%;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: #fff;
-      font-size: 14px;
-    }
-
-    .input-box input::placeholder {
-      color: #64748b;
-    }
-
-    .eye-btn {
-      background: transparent;
-      border: none;
-      color: #94a3b8;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4px;
-    }
-
-    .agree-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 14px 0 22px;
-      font-size: 13px;
-      color: #cbd5e1;
-      cursor: pointer;
-    }
-
-    .agree-row input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--mint);
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .agree-highlight {
-      color: #38bdf8;
-      font-weight: 600;
-    }
-
-    .primary-mint-btn {
-      width: 100%;
-      height: 48px;
-      border: none;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #34d399 0%, #22d3ee 100%);
-      color: #04202c;
-      font-size: 16px;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(34, 211, 238, 0.28);
-    }
-
-    .primary-mint-btn:active {
-      transform: scale(0.99);
-    }
-
-    .secondary-outline-btn {
-      width: 100%;
-      height: 46px;
-      margin-top: 14px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(34, 211, 170, 0.45);
-      color: #e2e8f0;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .secondary-outline-btn strong {
-      color: var(--mint);
-      font-weight: 800;
-    }
-
-    .skip-link-btn {
-      margin-top: 14px;
-      background: transparent;
-      border: none;
-      color: #94a3b8;
-      font-size: 12.5px;
-      text-decoration: underline;
-      cursor: pointer;
-      align-self: center;
-      padding: 6px;
-    }
-
-    /* ==================== GAME APP ==================== */
-    .game-screen {
-      display: none;
-      flex-direction: column;
-      min-height: 100vh;
-      padding-bottom: 24px;
-      background: var(--bg-deep);
-    }
-
-    .game-header {
-      height: 54px;
-      background: #070426;
-      padding: 0 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      position: sticky;
-      top: 0;
-      z-index: 30;
-    }
-
-    .header-right-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .user-chip {
-      font-size: 11px;
-      background: rgba(34, 211, 170, 0.14);
-      color: var(--mint);
-      border: 1px solid rgba(34, 211, 170, 0.35);
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-weight: 700;
-      max-width: 110px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .wallet-card {
-      margin: 12px 12px 10px;
-      padding: 16px 16px 14px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, #1b2d7a 0%, #10194b 58%, #0b1033 100%);
-      border: 1px solid rgba(96, 165, 250, 0.22);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-    }
-
-    .wallet-balance-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
-
-    .wallet-amount {
-      font-size: 24px;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: 0.3px;
-    }
-
-    .refresh-btn {
-      background: transparent;
-      border: none;
-      color: #cbd5e1;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4px;
-    }
-
-    .wallet-sub {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 12.5px;
-      color: #cbd5e1;
-      margin-bottom: 14px;
-    }
-
-    .wallet-sub svg {
-      color: var(--mint);
-    }
-
-    .wallet-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .btn-withdraw {
-      height: 38px;
-      border: none;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #ef4444, #dc2626);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .btn-deposit {
-      height: 38px;
-      border: none;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #22c55e, #16a34a);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .notice-bar {
-      margin: 0 12px 12px;
-      padding: 8px 10px;
-      background: #0b1138;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .notice-icon {
-      color: var(--mint);
-      flex-shrink: 0;
-      display: inline-flex;
-    }
-
-    .notice-marquee {
-      flex: 1;
-      overflow: hidden;
-      white-space: nowrap;
-      font-size: 12px;
-      color: #e2e8f0;
-    }
-
-    .notice-marquee span {
-      display: inline-block;
-      padding-left: 100%;
-      animation: marqueeAnim 16s linear infinite;
-    }
-
-    @keyframes marqueeAnim {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
-    }
-
-    .notice-detail-btn {
-      background: linear-gradient(90deg, #34d399, #22d3ee);
-      color: #05202a;
-      border: none;
-      border-radius: 999px;
-      padding: 5px 12px;
-      font-size: 11.5px;
-      font-weight: 700;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    /* Mode Tabs */
-    .mode-tabs {
-      margin: 0 12px 12px;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-    }
-
-    .mode-tab {
-      background: #0c133d;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 10px 6px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-      cursor: pointer;
-      color: #94a3b8;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .mode-tab.active {
-      background: linear-gradient(180deg, #2dd4bf 0%, #0d9488 100%);
-      color: #fff;
-      border-color: transparent;
-      box-shadow: 0 6px 16px rgba(20, 184, 166, 0.35);
-    }
-
-    .clock-circle {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.14);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-    }
-
-    .mode-tab.active .clock-circle {
-      background: rgba(255, 255, 255, 0.25);
-    }
-
-    /* Perforated Ticket Timer */
-    .ticket-banner {
-      margin: 0 12px 12px;
-      display: grid;
-      grid-template-columns: 1.08fr 0.92fr;
-      border-radius: 14px;
-      overflow: hidden;
-      background: linear-gradient(90deg, #22d3aa 0%, #34d399 100%);
-      color: #05232b;
-      position: relative;
-      box-shadow: 0 6px 18px rgba(34, 211, 170, 0.2);
-    }
-
-    .ticket-left {
-      padding: 11px 12px;
-      border-right: 2px dashed rgba(5, 35, 43, 0.35);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .how-to-play-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255, 255, 255, 0.32);
-      border: 1px solid rgba(5, 35, 43, 0.2);
-      color: #042028;
-      font-size: 11.5px;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 999px;
-      cursor: pointer;
-      width: fit-content;
-    }
-
-    .ticket-mode-label {
-      font-size: 12px;
-      font-weight: 800;
-      margin: 6px 0 4px;
-      color: #042028;
-    }
-
-    .recent-balls-row {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .mini-ball {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 800;
-      color: #fff;
-      box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.25);
-    }
-
-    .ticket-right {
-      padding: 11px 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      justify-content: space-between;
-    }
-
-    .time-rem-title {
-      font-size: 12px;
-      font-weight: 800;
-      color: #042028;
-    }
-
-    .flip-digits {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin: 4px 0;
-    }
-
-    .flip-box {
-      width: 22px;
-      height: 28px;
-      background: #071336;
-      color: #ffffff;
-      border-radius: 4px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 900;
-    }
-
-    .flip-colon {
-      font-size: 16px;
-      font-weight: 900;
-      color: #071336;
-    }
-
-    .period-code {
-      font-size: 11px;
-      font-weight: 800;
-      color: #042028;
-      letter-spacing: 0.2px;
-    }
-
-    /* Betting Board */
-    .bet-board {
-      margin: 0 12px 12px;
-      padding: 12px;
-      background: #090e34;
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      position: relative;
-    }
-
-    .color-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .color-btn {
-      height: 38px;
-      border: none;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    }
-
-    .color-btn.green { background: linear-gradient(135deg, #22c55e, #15803d); }
-    .color-btn.violet { background: linear-gradient(135deg, #a855f7, #7e22ce); }
-    .color-btn.red { background: linear-gradient(135deg, #f87171, #dc2626); }
-
-    .color-btn:active { transform: scale(0.97); }
-
-    .balls-panel {
-      background: #060924;
-      border-radius: 12px;
-      padding: 10px 8px;
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px 8px;
-      justify-items: center;
-      margin-bottom: 12px;
-    }
-
-    .num-ball {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: none;
-      color: #fff;
-      font-size: 17px;
-      font-weight: 900;
-      cursor: pointer;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
-      box-shadow: inset 0 3px 6px rgba(255, 255, 255, 0.45), inset 0 -4px 7px rgba(0, 0, 0, 0.45), 0 4px 8px rgba(0, 0, 0, 0.5);
-    }
-
-    .num-ball:active {
-      transform: scale(0.93);
-    }
-
-    .ball-red { background: radial-gradient(circle at 32% 28%, #ff8a80, #ef4444 58%, #991b1b 100%); }
-    .ball-green { background: radial-gradient(circle at 32% 28%, #6ee7b7, #16a34a 58%, #14532d 100%); }
-    .ball-violet-red { background: conic-gradient(from 0deg, #ef4444 0deg 180deg, #a855f7 180deg 360deg); }
-    .ball-violet-green { background: conic-gradient(from 0deg, #22c55e 0deg 180deg, #a855f7 180deg 360deg); }
-
-    .multiplier-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-      margin-bottom: 12px;
-    }
-
-    .random-btn {
-      background: transparent;
-      border: 1px solid #ef4444;
-      color: #f87171;
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .mult-chip {
-      background: #131b4e;
-      color: #cbd5e1;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .mult-chip.active {
-      background: var(--green-btn);
-      color: #fff;
-      border-color: var(--green-btn);
-    }
-
-    .big-small-bar {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      border-radius: 999px;
-      overflow: hidden;
-      height: 38px;
-    }
-
-    .big-btn {
-      background: linear-gradient(90deg, #f59e0b, #ea580c);
-      color: #fff;
-      border: none;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .small-btn {
-      background: linear-gradient(90deg, #60a5fa, #3b82f6);
-      color: #fff;
-      border: none;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    /* Lock Overlay during final 5 seconds */
-    .lock-overlay {
-      display: none;
-      position: absolute;
-      inset: 0;
-      background: rgba(5, 1, 33, 0.78);
-      backdrop-filter: blur(3px);
-      border-radius: 16px;
-      z-index: 12;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .lock-overlay.show {
-      display: flex;
-    }
-
-    .lock-counter-badge {
-      background: linear-gradient(90deg, #ef4444, #f59e0b);
-      color: #fff;
-      font-size: 28px;
-      font-weight: 900;
-      padding: 6px 22px;
-      border-radius: 999px;
-    }
-
-    /* History Section */
-    .history-section {
-      margin: 0 12px;
-    }
-
-    .history-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .hist-tab {
-      height: 36px;
-      border: none;
-      border-radius: 8px;
-      background: #0d1440;
-      color: #cbd5e1;
-      font-size: 12.5px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .hist-tab.active {
-      background: linear-gradient(90deg, #2dd4bf, #10b981);
-      color: #042028;
-    }
-
-    .hist-table-wrap {
-      background: #090e34;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.07);
-    }
-
-    table.hist-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-
-    table.hist-table thead th {
-      background: #2563eb;
-      color: #fff;
-      padding: 10px 6px;
-      font-weight: 700;
-      text-align: center;
-    }
-
-    table.hist-table tbody td {
-      padding: 10px 6px;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      color: #e2e8f0;
-      font-weight: 600;
-    }
-
-    .dot-row {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-    }
-
-    .color-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-
-    .pagination-bar {
-      margin-top: 12px;
-      background: #090e34;
-      border-radius: 12px;
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .page-btn {
-      width: 34px;
-      height: 30px;
-      border: none;
-      border-radius: 8px;
-      background: #172056;
-      color: #fff;
-      font-size: 15px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .page-btn.next {
-      background: #10b981;
-      color: #042028;
-    }
-
-    /* Chart view */
-    .chart-box {
-      padding: 14px;
-    }
-
-    .chart-bar-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 6px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      font-size: 12px;
-    }
-
-    .chart-nodes {
-      display: flex;
-      gap: 4px;
-    }
-
-    .chart-node {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      font-size: 10px;
-      font-weight: 800;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: #151e4d;
-      color: #64748b;
-    }
-
-    .chart-node.hit {
-      background: #22d3aa;
-      color: #042028;
-    }
-
-    /* ==================== BET DRAWER & MODALS ==================== */
-    .backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.72);
-      z-index: 60;
-      align-items: flex-end;
-      justify-content: center;
-    }
-
-    .backdrop.center {
-      align-items: center;
-      padding: 16px;
-    }
-
-    .backdrop.open {
-      display: flex;
-    }
-
-    .sheet {
-      width: 100%;
-      max-width: 460px;
-      background: #0d1342;
-      border-radius: 20px 20px 0 0;
-      padding: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.14);
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .modal-card {
-      width: 100%;
-      max-width: 420px;
-      background: #0d1342;
-      border-radius: 18px;
-      padding: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      max-height: 88vh;
-      overflow-y: auto;
-    }
-
-    .modal-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
-
-    .modal-head h3 {
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    .close-x {
-      background: rgba(255, 255, 255, 0.08);
-      border: none;
-      color: #fff;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .preset-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin: 10px 0 14px;
-    }
-
-    .preset-chip {
-      padding: 9px 6px;
-      border-radius: 8px;
-      background: #141d58;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e2e8f0;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .preset-chip.active {
-      background: var(--mint);
-      color: #042028;
-      border-color: var(--mint);
-    }
-
+      --bg: #0b0f19;
+      --card: #141b2d;
+      --card-2: #1c263f;
+      --text: #f3f6fc;
+      --muted: #9aa7be;
+      --green: #16a34a;
+      --red: #dc2626;
+      --violet: #7c3aed;
+      --gold: #f59e0b;
+      --accent: #3b82f6;
+      --border: rgba(255,255,255,0.08);
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding-bottom: 50px; }
+    .container { max-width: 520px; margin: 0 auto; padding: 14px; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card); padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border);
+      position: sticky; top: 8px; z-index: 20;
+    }
+    .brand { font-weight: 800; font-size: 18px; letter-spacing: 0.4px; cursor: pointer; user-select: none; }
+    .brand span { color: var(--gold); }
+    .bal-box { text-align: right; }
+    .bal-label { font-size: 11px; color: var(--muted); }
+    .bal-val { font-weight: 700; font-size: 16px; color: #4ade80; }
+    .notice {
+      margin-top: 10px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fde68a; padding: 10px 12px; border-radius: 10px; font-size: 13px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px; margin-top: 12px;
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    input, select, button {
+      border-radius: 10px; border: 1px solid var(--border); padding: 10px 12px;
+      font-size: 14px; color: var(--text); background: var(--card-2);
+    }
+    input, select { width: 100%; }
+    button { cursor: pointer; font-weight: 600; transition: 0.15s; }
+    button:active { transform: scale(0.98); }
+    .btn-primary { background: var(--accent); border: none; width: 100%; }
+    .btn-green { background: var(--green); border: none; flex: 1; }
+    .btn-violet { background: var(--violet); border: none; flex: 1; }
+    .btn-red { background: var(--red); border: none; flex: 1; }
+    .btn-gold { background: var(--gold); color: #111; border: none; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; }
+    .timer-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .timer { font-size: 24px; font-weight: 800; color: var(--gold); }
+    .num-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
+    .num-btn { padding: 12px 0; font-weight: 700; text-align: center; }
+    .tabs { display: flex; gap: 6px; margin-top: 12px; overflow-x: auto; }
+    .tab-btn { background: var(--card-2); padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+    .tab-btn.active { background: var(--accent); border-color: transparent; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    th, td { padding: 8px 6px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--muted); }
+    .badge { padding: 3px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .pending { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    .approved { background: rgba(22,163,74,0.2); color: #4ade80; }
+    .rejected { background: rgba(220,38,38,0.2); color: #f87171; }
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none;
+      align-items: center; justify-content: center; z-index: 50; padding: 14px;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 16px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
+    }
+    .muted { color: var(--muted); font-size: 12px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
     .upi-box {
-      background: #070b29;
-      border: 1px dashed rgba(34, 211, 170, 0.55);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
-
-    .upi-id-line {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-top: 6px;
-      font-size: 14px;
-      font-weight: 800;
-      color: var(--mint);
-      word-break: break-all;
-    }
-
-    .copy-mini-btn {
-      background: rgba(34, 211, 170, 0.18);
-      border: 1px solid var(--mint);
-      color: var(--mint);
-      border-radius: 6px;
-      padding: 5px 10px;
-      font-size: 11.5px;
-      font-weight: 700;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .upi-apps-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin: 10px 0 14px;
-    }
-
-    .upi-app-btn {
-      padding: 9px 6px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: #131c54;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .form-input {
-      width: 100%;
-      height: 42px;
-      background: #070b29;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 10px;
-      padding: 0 12px;
-      color: #fff;
-      font-size: 13.5px;
-      margin-bottom: 10px;
-      outline: none;
-    }
-
-    .form-input:focus {
-      border-color: var(--mint);
-    }
-
-    .min-note {
-      font-size: 11.5px;
-      color: #fbbf24;
-      margin-bottom: 8px;
-      font-weight: 700;
-    }
-
-    .saved-bank-box {
-      background: #070b29;
-      border: 1px solid rgba(96, 165, 250, 0.35);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 12px;
-      font-size: 12.5px;
-      line-height: 1.55;
-    }
-
-    .toast {
-      position: fixed;
-      top: 66px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(10, 17, 56, 0.96);
-      color: #fff;
-      border: 1px solid var(--mint);
-      padding: 9px 16px;
-      border-radius: 999px;
-      font-size: 12.5px;
-      font-weight: 700;
-      z-index: 99;
-      display: none;
-      max-width: 90%;
-      text-align: center;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    }
-
-    .toast.show {
-      display: block;
+      background: var(--card-2); padding: 10px 12px; border-radius: 10px;
+      border: 1px dashed rgba(245,158,11,0.5); margin: 8px 0; font-weight: 700; color: #fde68a;
     }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <div id="toast" class="toast"></div>
+  <div class="container">
+    <header>
+      <div class="brand" id="logoTap" title="5 बार टैप करें">JALWA<span>.GAME</span></div>
+      <div id="userHeaderArea"></div>
+    </header>
 
-    <!-- ==================== AUTH CONTAINER ==================== -->
-    <section id="authContainer" class="auth-screen">
-      <div class="auth-top-bar">
-        <button type="button" class="icon-btn" id="authBackBtn" title="Enter Game">‹</button>
-        <div class="brand-logo">Jalwa<span class="game-tag">.Game</span></div>
-        <button type="button" class="lang-pill" id="langBtn">🇺🇸 EN</button>
-      </div>
+    <div class="notice" id="noticeBox">लोड़ हो रहा है...</div>
 
-      <div class="auth-title-wrap">
-        <svg class="auth-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="6" y="2" width="12" height="20" rx="3" />
-          <line x1="10" y1="18" x2="14" y2="18" />
-        </svg>
-        <div id="authHeading" class="auth-title-text">Register your phone</div>
-      </div>
+    <!-- Login / Register Card -->
+    <div class="card" id="authCard">
+      <h3 style="margin:0 0 8px 0;">Login / Register</h3>
+      <p class="muted" style="margin:0 0 10px 0;">नया अकाउंट ₹0.00 बैलेंस से शुरू होगा।</p>
+      <input type="tel" id="phoneInput" placeholder="मोबाइल नंबर (10 अंक)" maxlength="10" />
+      <button class="btn-primary mt-2" id="loginBtn">Continue with Mobile</button>
+    </div>
 
-      <div class="field-group">
-        <label class="field-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <rect x="6" y="2" width="12" height="20" rx="3" />
-            <line x1="10" y1="18" x2="14" y2="18" />
-          </svg>
-          <span>Phone number</span>
-        </label>
-        <div class="phone-row">
-          <select id="countryCodeInput" class="code-select">
-            <option value="+91" selected>+91</option>
-            <option value="+1">+1</option>
-            <option value="+44">+44</option>
-            <option value="+971">+971</option>
-          </select>
-          <div class="input-box">
-            <input type="tel" id="phoneInput" placeholder="Please enter the phone number" maxlength="15" />
+    <!-- Main Game Area -->
+    <div id="gameArea" style="display:none;">
+      <div class="card">
+        <div class="timer-row">
+          <div>
+            <div class="muted">Period #<span id="periodId">-</span></div>
+            <div class="muted" id="syncStatus">Firebase: Connecting...</div>
           </div>
+          <div class="timer" id="countdown">30s</div>
+        </div>
+
+        <div class="row">
+          <button class="btn-green" onclick="openBet('Color', 'Green')">Green (2x)</button>
+          <button class="btn-violet" onclick="openBet('Color', 'Violet')">Violet (4.5x)</button>
+          <button class="btn-red" onclick="openBet('Color', 'Red')">Red (2x)</button>
+        </div>
+
+        <div class="num-grid">
+          <button class="num-btn" onclick="openBet('Number', '0')">0</button>
+          <button class="num-btn" onclick="openBet('Number', '1')">1</button>
+          <button class="num-btn" onclick="openBet('Number', '2')">2</button>
+          <button class="num-btn" onclick="openBet('Number', '3')">3</button>
+          <button class="num-btn" onclick="openBet('Number', '4')">4</button>
+          <button class="num-btn" onclick="openBet('Number', '5')">5</button>
+          <button class="num-btn" onclick="openBet('Number', '6')">6</button>
+          <button class="num-btn" onclick="openBet('Number', '7')">7</button>
+          <button class="num-btn" onclick="openBet('Number', '8')">8</button>
+          <button class="num-btn" onclick="openBet('Number', '9')">9</button>
         </div>
       </div>
 
-      <div class="field-group">
-        <label class="field-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <rect x="3" y="11" width="18" height="11" rx="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <span id="passLabel">Set password</span>
-        </label>
-        <div class="input-box">
-          <input type="password" id="passwordInput" placeholder="Set password" />
-          <button type="button" class="eye-btn" data-target="passwordInput" aria-label="Toggle password">👁</button>
+      <!-- Deposit & Withdraw Actions -->
+      <div class="card">
+        <div class="row">
+          <button class="btn-gold" style="flex:1;" onclick="openModal('depositModal')">Deposit (Min ₹1,000)</button>
+          <button class="btn-primary" style="flex:1;" onclick="openModal('withdrawModal')">Withdraw (Min ₹1,000)</button>
         </div>
       </div>
 
-      <div id="confirmPassGroup" class="field-group">
-        <label class="field-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <rect x="3" y="11" width="18" height="11" rx="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <span>Confirm password</span>
-        </label>
-        <div class="input-box">
-          <input type="password" id="confirmPasswordInput" placeholder="Confirm password" />
-          <button type="button" class="eye-btn" data-target="confirmPasswordInput" aria-label="Toggle confirm password">👁</button>
-        </div>
+      <!-- History Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" id="tabResultsBtn" onclick="switchHistoryTab('results')">Results</button>
+        <button class="tab-btn" id="tabBetsBtn" onclick="switchHistoryTab('bets')">My Bets</button>
+        <button class="tab-btn" id="tabTxBtn" onclick="switchHistoryTab('tx')">Deposits/Withdrawals</button>
       </div>
 
-      <div id="inviteGroup" class="field-group">
-        <label class="field-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          <span>Invite code</span>
-        </label>
-        <div class="input-box">
-          <input type="text" id="inviteCodeInput" value="568619351954" />
-        </div>
-      </div>
-
-      <label class="agree-row">
-        <input type="checkbox" id="agreeCheck" checked />
-        <span>I have read and agree <span class="agree-highlight">【Privacy Agreement】</span></span>
-      </label>
-
-      <button type="button" id="authSubmitBtn" class="primary-mint-btn">Register</button>
-
-      <button type="button" id="switchAuthModeBtn" class="secondary-outline-btn">
-        <span id="switchModeText">I have an account</span>
-        <strong id="switchModeAction">Login</strong>
-      </button>
-
-      <button type="button" id="skipEnterBtn" class="skip-link-btn">Skip & Enter Game (₹0.00)</button>
-    </section>
-
-    <!-- ==================== GAME APP CONTAINER ==================== -->
-    <main id="gameAppContainer" class="game-screen">
-      <header class="game-header">
-        <button type="button" class="icon-btn" id="logoutToAuthBtn" title="Back / Logout">‹</button>
-        <div class="brand-logo">Jalwa<span class="game-tag">.Game</span></div>
-        <div class="header-right-actions">
-          <span id="activeUserBadge" class="user-chip">ID: 000000</span>
-          <button type="button" class="icon-btn" id="supportBtn" title="Customer Care">🎧</button>
-          <button type="button" class="icon-btn" id="soundToggleBtn" title="Toggle Sound & Voice">🔊</button>
-        </div>
-      </header>
-
-      <!-- Wallet Balance Card -->
-      <section class="wallet-card">
-        <div class="wallet-balance-row">
-          <span id="walletBalanceText" class="wallet-amount">₹0.00</span>
-          <button type="button" class="refresh-btn" id="refreshBalanceBtn" title="Refresh Balance">↻</button>
-        </div>
-        <div class="wallet-sub">
-          <span>👛</span>
-          <span>Wallet balance</span>
-        </div>
-        <div class="wallet-actions">
-          <button type="button" class="btn-withdraw" id="openWithdrawBtn">Withdraw</button>
-          <button type="button" class="btn-deposit" id="openDepositBtn">Deposit</button>
-        </div>
-      </section>
-
-      <!-- Announcement Bar -->
-      <div class="notice-bar">
-        <span class="notice-icon">🔊</span>
-        <div class="notice-marquee">
-          <span>Minimum deposit & withdrawal ₹1,000. Deposit via UPI: jalwarohit1466@ptyes. Our customer service will never send any links to members.</span>
-        </div>
-        <button type="button" class="notice-detail-btn" id="noticeDetailBtn">Detail</button>
-      </div>
-
-      <!-- Time Modes -->
-      <div class="mode-tabs" id="modeTabs">
-        <button type="button" class="mode-tab active" data-mode="30">
-          <span class="clock-circle">🕒</span>
-          <span>WinGo<br />30sec</span>
-        </button>
-        <button type="button" class="mode-tab" data-mode="60">
-          <span class="clock-circle">🕒</span>
-          <span>WinGo<br />1Min</span>
-        </button>
-        <button type="button" class="mode-tab" data-mode="180">
-          <span class="clock-circle">🕒</span>
-          <span>WinGo<br />3Min</span>
-        </button>
-        <button type="button" class="mode-tab" data-mode="300">
-          <span class="clock-circle">🕒</span>
-          <span>WinGo<br />5Min</span>
-        </button>
-      </div>
-
-      <!-- Perforated Ticket Timer -->
-      <section class="ticket-banner">
-        <div class="ticket-left">
-          <button type="button" class="how-to-play-btn" id="howToPlayBtn">📄 How to play</button>
-          <div id="ticketModeTitle" class="ticket-mode-label">WinGo 30sec</div>
-          <div id="recentBallsRow" class="recent-balls-row"></div>
-        </div>
-        <div class="ticket-right">
-          <div class="time-rem-title">Time remaining</div>
-          <div class="flip-digits">
-            <span id="digitM1" class="flip-box">0</span>
-            <span id="digitM2" class="flip-box">0</span>
-            <span class="flip-colon">:</span>
-            <span id="digitS1" class="flip-box">0</span>
-            <span id="digitS2" class="flip-box">0</span>
-          </div>
-          <div id="periodNumberText" class="period-code">20261122100050465</div>
-        </div>
-      </section>
-
-      <!-- Betting Board -->
-      <section class="bet-board">
-        <div id="lockOverlay" class="lock-overlay">
-          <div style="font-size:14px;font-weight:800;color:#fca5a5;">BETS LOCKED</div>
-          <div id="lockCountBadge" class="lock-counter-badge">05</div>
-        </div>
-
-        <div class="color-row">
-          <button type="button" class="color-btn green" data-bet-type="Color" data-bet-val="Green">Green</button>
-          <button type="button" class="color-btn violet" data-bet-type="Color" data-bet-val="Violet">Violet</button>
-          <button type="button" class="color-btn red" data-bet-type="Color" data-bet-val="Red">Red</button>
-        </div>
-
-        <div class="balls-panel" id="numberBallsGrid"></div>
-
-        <div class="multiplier-row">
-          <button type="button" class="random-btn" id="randomPickBtn">Random</button>
-          <button type="button" class="mult-chip active" data-mult="1">X1</button>
-          <button type="button" class="mult-chip" data-mult="5">X5</button>
-          <button type="button" class="mult-chip" data-mult="10">X10</button>
-          <button type="button" class="mult-chip" data-mult="20">X20</button>
-          <button type="button" class="mult-chip" data-mult="50">X50</button>
-          <button type="button" class="mult-chip" data-mult="100">X100</button>
-        </div>
-
-        <div class="big-small-bar">
-          <button type="button" class="big-btn" data-bet-type="BigSmall" data-bet-val="Big">Big</button>
-          <button type="button" class="small-btn" data-bet-type="BigSmall" data-bet-val="Small">Small</button>
-        </div>
-      </section>
-
-      <!-- History Section -->
-      <section class="history-section">
-        <div class="history-tabs">
-          <button type="button" class="hist-tab active" data-htab="game">Game history</button>
-          <button type="button" class="hist-tab" data-htab="chart">Chart</button>
-          <button type="button" class="hist-tab" data-htab="my">My history</button>
-        </div>
-
-        <div id="gameHistoryView" class="hist-table-wrap">
-          <table class="hist-table">
-            <thead>
-              <tr>
-                <th>Period</th>
-                <th>Number</th>
-                <th>Big Small</th>
-                <th>Color</th>
-              </tr>
-            </thead>
-            <tbody id="gameHistoryTbody"></tbody>
-          </table>
-        </div>
-
-        <div id="chartHistoryView" class="hist-table-wrap chart-box" style="display:none;"></div>
-
-        <div id="myHistoryView" class="hist-table-wrap" style="display:none;">
-          <table class="hist-table">
-            <thead>
-              <tr>
-                <th>Period</th>
-                <th>Select</th>
-                <th>Amount</th>
-                <th>Result</th>
-              </tr>
-            </thead>
-            <tbody id="myHistoryTbody"></tbody>
-          </table>
-        </div>
-
-        <div class="pagination-bar">
-          <button type="button" class="page-btn" id="prevPageBtn">‹</button>
-          <span id="pageIndicatorText">1/50</span>
-          <button type="button" class="page-btn next" id="nextPageBtn">›</button>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <!-- ==================== BET DRAWER ==================== -->
-  <div id="betDrawerBackdrop" class="backdrop">
-    <div class="sheet">
-      <div class="modal-head">
-        <h3 id="betDrawerTitle">Place Bet</h3>
-        <button type="button" class="close-x" id="closeBetDrawer">✕</button>
-      </div>
-      <div style="font-size:12.5px;color:#94a3b8;margin-bottom:8px;">
-        Available Balance: <strong id="drawerBalanceText" style="color:#22d3aa;">₹0.00</strong>
-      </div>
-      <div style="font-size:12px;color:#cbd5e1;">Base Amount:</div>
-      <div class="preset-grid" id="baseAmountGrid">
-        <button type="button" class="preset-chip active" data-amt="10">₹10</button>
-        <button type="button" class="preset-chip" data-amt="50">₹50</button>
-        <button type="button" class="preset-chip" data-amt="100">₹100</button>
-        <button type="button" class="preset-chip" data-amt="500">₹500</button>
-        <button type="button" class="preset-chip" data-amt="1000">₹1,000</button>
-        <button type="button" class="preset-chip" data-amt="5000">₹5,000</button>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;background:#070b29;padding:10px 12px;border-radius:10px;">
-        <span style="font-size:12.5px;color:#cbd5e1;">Multiplier: <strong id="drawerMultText" style="color:#f59e0b;">X1</strong></span>
-        <span style="font-size:14px;font-weight:800;color:#22d3aa;">Total: <span id="drawerTotalText">₹10</span></span>
-      </div>
-      <button type="button" id="confirmBetBtn" class="primary-mint-btn">Confirm Bet</button>
+      <div class="card" id="historyCard"></div>
     </div>
   </div>
 
-  <!-- ==================== DEPOSIT MODAL ==================== -->
-  <div id="depositModal" class="backdrop center">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h3>Deposit via UPI</h3>
-        <button type="button" class="close-x" data-close="depositModal">✕</button>
+  <!-- Bet Modal -->
+  <div class="modal-bg" id="betModal">
+    <div class="modal">
+      <div class="flex-between">
+        <h3 style="margin:0;" id="betTitle">Place Bet</h3>
+        <button class="btn-sm" onclick="closeModal('betModal')">✕</button>
       </div>
-
-      <div class="min-note">Minimum Deposit Fund: ₹1,000</div>
-      <div style="font-size:12.5px;color:#cbd5e1;">Select Deposit Amount:</div>
-      <div class="preset-grid" id="depositPresetGrid">
-        <button type="button" class="preset-chip active" data-dep="1000">₹1,000</button>
-        <button type="button" class="preset-chip" data-dep="2000">₹2,000</button>
-        <button type="button" class="preset-chip" data-dep="3000">₹3,000</button>
-        <button type="button" class="preset-chip" data-dep="5000">₹5,000</button>
-        <button type="button" class="preset-chip" data-dep="10000">₹10,000</button>
-        <button type="button" class="preset-chip" data-dep="20000">₹20,000</button>
+      <p class="muted mt-2" id="betSubtitle"></p>
+      <input type="number" id="betAmount" placeholder="राशि दर्ज करें (₹)" min="1" class="mt-2" />
+      <div class="row mt-2">
+        <button class="btn-sm" onclick="setBetQuick(100)">₹100</button>
+        <button class="btn-sm" onclick="setBetQuick(500)">₹500</button>
+        <button class="btn-sm" onclick="setBetQuick(1000)">₹1,000</button>
+        <button class="btn-sm" onclick="setBetQuick(5000)">₹5,000</button>
       </div>
+      <button class="btn-primary mt-3" onclick="submitBet()">Confirm Bet</button>
+    </div>
+  </div>
 
-      <input type="number" id="customDepositInput" class="form-input" value="1000" min="1000" placeholder="Enter amount (min ₹1,000)" />
+  <!-- Deposit Modal -->
+  <div class="modal-bg" id="depositModal">
+    <div class="modal">
+      <div class="flex-between">
+        <h3 style="margin:0;">Deposit (Min ₹1,000)</h3>
+        <button class="btn-sm" onclick="closeModal('depositModal')">✕</button>
+      </div>
+      <p class="muted mt-2">नीचे दिए गए UPI ID पर भुगतान करें और 12 अंकों का UTR नंबर डालें:</p>
+      <div class="upi-box" id="depositUpiDisplay">jalwarohit1466@ptyes</div>
+      <input type="number" id="depositAmount" placeholder="राशि (न्यूनतम ₹1,000)" min="1000" class="mt-2" />
+      <input type="text" id="depositUtr" placeholder="UTR / Ref Number दर्ज करें" class="mt-2" />
+      <button class="btn-gold mt-3" style="width:100%;" onclick="submitDeposit()">Submit Deposit</button>
+    </div>
+  </div>
 
-      <div class="upi-box">
-        <div style="font-size:11.5px;color:#94a3b8;">Merchant UPI ID</div>
-        <div class="upi-id-line">
-          <span id="merchantUpiText">jalwarohit1466@ptyes</span>
-          <button type="button" class="copy-mini-btn" id="copyUpiBtn">Copy</button>
+  <!-- Withdraw Modal -->
+  <div class="modal-bg" id="withdrawModal">
+    <div class="modal">
+      <div class="flex-between">
+        <h3 style="margin:0;">Withdraw (Min ₹1,000)</h3>
+        <button class="btn-sm" onclick="closeModal('withdrawModal')">✕</button>
+      </div>
+      <p class="muted mt-2">न्यूनतम निकासी राशि ₹1,000 है।</p>
+      <input type="number" id="withdrawAmount" placeholder="राशि (न्यूनतम ₹1,000)" min="1000" class="mt-2" />
+      <input type="text" id="withdrawUpi" placeholder="अपना UPI ID या बैंक विवरण दर्ज करें" class="mt-2" />
+      <button class="btn-primary mt-3" onclick="submitWithdraw()">Request Withdraw</button>
+    </div>
+  </div>
+
+  <!-- Admin PIN Modal -->
+  <div class="modal-bg" id="adminPinModal">
+    <div class="modal">
+      <div class="flex-between">
+        <h3 style="margin:0;">Admin Unlock</h3>
+        <button class="btn-sm" onclick="closeModal('adminPinModal')">✕</button>
+      </div>
+      <input type="password" id="adminPinInput" placeholder="4-अंकों का Admin PIN डालें" maxlength="6" class="mt-3" />
+      <button class="btn-gold mt-3" style="width:100%;" onclick="verifyAdminPin()">Unlock Panel</button>
+    </div>
+  </div>
+
+  <!-- Admin Panel Modal -->
+  <div class="modal-bg" id="adminPanelModal">
+    <div class="modal">
+      <div class="flex-between">
+        <h3 style="margin:0;">Admin Control Panel</h3>
+        <button class="btn-sm" onclick="closeModal('adminPanelModal')">✕</button>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" id="admTabUsers" onclick="switchAdminTab('users')">Users</button>
+        <button class="tab-btn" id="admTabDeposits" onclick="switchAdminTab('deposits')">Deposits</button>
+        <button class="tab-btn" id="admTabWithdrawals" onclick="switchAdminTab('withdrawals')">Withdrawals</button>
+        <button class="tab-btn" id="admTabConfig" onclick="switchAdminTab('config')">Game/UPI</button>
+      </div>
+      <div id="adminBody" class="mt-3"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getDatabase, ref, set, get, update, onValue, push } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1h9HIrenV2wGgfGMRY23oGzPfQ5sRTIc",
+      authDomain: "clour-game.firebaseapp.com",
+      databaseURL: "https://clour-game-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "clour-game",
+      storageBucket: "clour-game.firebasestorage.app",
+      messagingSenderId: "97849556132",
+      appId: "1:97849556132:web:37320cd7b7f23ff7693a31",
+      measurementId: "G-5WM66NSL4C"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const ADMIN_PIN = "9999";
+    const MIN_AMOUNT = 1000;
+    const DEFAULT_UPI = "jalwarohit1466@ptyes";
+
+    let currentPhone = localStorage.getItem("jalwa_phone") || "";
+    let currentHistoryTab = "results";
+    let currentAdminTab = "users";
+    let pendingBet = null;
+    let logoTaps = 0;
+    let logoTapTimer = null;
+
+    let state = {
+      config: {
+        upi: DEFAULT_UPI,
+        notice: "न्यूनतम डिपॉज़िट और विड्रॉल ₹1,000 है। नया अकाउंट ₹0.00 से शुरू होता है।",
+        forcedNumber: ""
+      },
+      users: {},
+      deposits: {},
+      withdrawals: {},
+      bets: {},
+      results: [],
+      lastProcessedPeriod: ""
+    };
+
+    function getCurrentPeriodInfo() {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const periodIndex = Math.floor(nowSec / 30);
+      const remaining = 30 - (nowSec % 30);
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const periodId = `${yyyy}${mm}${dd}${String(periodIndex % 10000).padStart(4, "0")}`;
+      return { periodId, remaining, periodIndex };
+    }
+
+    function getColorForNumber(num) {
+      const n = Number(num);
+      if (n === 0) return "Red+Violet";
+      if (n === 5) return "Green+Violet";
+      return n % 2 === 0 ? "Red" : "Green";
+    }
+
+    function computePayout(betType, betVal, winNum) {
+      const n = String(winNum);
+      const color = getColorForNumber(n);
+      if (betType === "Number") {
+        return betVal === n ? 9 : 0;
+      }
+      if (betType === "Color") {
+        if (betVal === "Violet" && color.includes("Violet")) return 4.5;
+        if (betVal === "Green" && color.includes("Green")) return 2;
+        if (betVal === "Red" && color.includes("Red")) return 2;
+      }
+      return 0;
+    }
+
+    function renderHeader() {
+      const area = document.getElementById("userHeaderArea");
+      if (!currentPhone) {
+        area.innerHTML = `<span class="muted">Guest</span>`;
+        document.getElementById("authCard").style.display = "block";
+        document.getElementById("gameArea").style.display = "none";
+        return;
+      }
+      const user = state.users[currentPhone] || { phone: currentPhone, balance: 0 };
+      const bal = Number(user.balance || 0).toFixed(2);
+      area.innerHTML = `
+        <div class="bal-box">
+          <div class="bal-label">${currentPhone} · <a href="#" id="logoutLink" style="color:#93c5fd;text-decoration:none;">Logout</a></div>
+          <div class="bal-val">₹${bal}</div>
         </div>
-      </div>
-
-      <button type="button" id="launchDefaultUpiBtn" class="primary-mint-btn">
-        Open UPI App & Pay ₹<span id="payBtnAmount">1,000</span>
-      </button>
-
-      <div class="upi-apps-grid">
-        <button type="button" class="upi-app-btn" data-upi-app="phonepe">PhonePe</button>
-        <button type="button" class="upi-app-btn" data-upi-app="gpay">Google Pay</button>
-        <button type="button" class="upi-app-btn" data-upi-app="paytm">Paytm</button>
-      </div>
-
-      <div style="font-size:12px;color:#cbd5e1;margin-bottom:6px;">After payment, enter 12-digit UTR to credit balance:</div>
-      <input type="text" id="utrInput" class="form-input" placeholder="Enter 12-digit UTR number" maxlength="20" />
-      <button type="button" id="submitUtrBtn" class="secondary-outline-btn" style="margin-top:0;">
-        <strong>Submit UTR & Add Balance</strong>
-      </button>
-    </div>
-  </div>
-
-  <!-- ==================== WITHDRAW MODAL ==================== -->
-  <div id="withdrawModal" class="backdrop center">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h3>Bank Withdrawal</h3>
-        <button type="button" class="close-x" data-close="withdrawModal">✕</button>
-      </div>
-
-      <div style="font-size:12.5px;color:#cbd5e1;margin-bottom:4px;">
-        Available Balance: <strong id="withdrawAvailBalance" style="color:#22d3aa;">₹0.00</strong>
-      </div>
-      <div class="min-note">Minimum Withdrawal Fund: ₹1,000</div>
-
-      <div id="savedBankCard" class="saved-bank-box" style="display:none;"></div>
-
-      <div id="bankFormWrap">
-        <input type="text" id="bankNameInput" class="form-input" placeholder="Bank Name (e.g. SBI, HDFC, ICICI)" />
-        <input type="text" id="accountHolderInput" class="form-input" placeholder="Account Holder Name" />
-        <input type="text" id="accountNumberInput" class="form-input" placeholder="Account Number" />
-        <input type="text" id="ifscCodeInput" class="form-input" placeholder="IFSC Code (e.g. SBIN0001234)" maxlength="11" />
-        <button type="button" id="saveBankBtn" class="secondary-outline-btn" style="margin-top:0;margin-bottom:12px;">
-          <strong>Save Bank Details</strong>
-        </button>
-      </div>
-
-      <input type="number" id="withdrawAmountInput" class="form-input" placeholder="Enter withdrawal amount (min ₹1,000)" min="1000" />
-      <button type="button" id="submitWithdrawBtn" class="primary-mint-btn">Submit Withdrawal</button>
-
-      <div style="margin-top:14px;">
-        <div style="font-size:12.5px;font-weight:700;margin-bottom:6px;color:#94a3b8;">Recent Withdrawals</div>
-        <div id="withdrawHistoryList" style="font-size:12px;color:#cbd5e1;">No withdrawals yet.</div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    (function () {
-      "use strict";
-
-      const MIN_FUND = 1000;
-      const MERCHANT_UPI = "jalwarohit1466@ptyes";
-
-      // ==================== SAFE STORAGE ====================
-      const memoryStore = {};
-      function readStore(key, fallback) {
-        try {
-          const raw = window.localStorage.getItem(key);
-          return raw ? JSON.parse(raw) : fallback;
-        } catch (e) {
-          return Object.prototype.hasOwnProperty.call(memoryStore, key) ? memoryStore[key] : fallback;
-        }
-      }
-      function writeStore(key, value) {
-        try {
-          window.localStorage.setItem(key, JSON.stringify(value));
-        } catch (e) {
-          memoryStore[key] = value;
-        }
-      }
-
-      // ==================== SOUND & VOICE ENGINE ====================
-      const SoundEngine = {
-        enabled: true,
-        audioCtx: null,
-        ensureCtx() {
-          if (!this.enabled) return null;
-          const Ctx = window.AudioContext || window.webkitAudioContext;
-          if (!Ctx) return null;
-          if (!this.audioCtx) this.audioCtx = new Ctx();
-          if (this.audioCtx.state === "suspended") {
-            this.audioCtx.resume().catch(() => {});
-          }
-          return this.audioCtx;
-        },
-        tone(freq, duration = 0.08, type = "sine", gainVal = 0.08, delay = 0) {
-          const ctx = this.ensureCtx();
-          if (!ctx) return;
-          const now = ctx.currentTime + delay;
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = type;
-          osc.frequency.setValueAtTime(freq, now);
-          gain.gain.setValueAtTime(gainVal, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(now);
-          osc.stop(now + duration);
-        },
-        click() {
-          this.tone(760, 0.045, "triangle", 0.07);
-        },
-        coin() {
-          this.tone(987.77, 0.07, "sine", 0.09, 0);
-          this.tone(1318.51, 0.14, "sine", 0.09, 0.07);
-        },
-        beep(urgent = false) {
-          this.tone(urgent ? 1046 : 660, 0.09, "square", urgent ? 0.08 : 0.05);
-        },
-        win() {
-          [523.25, 659.25, 783.99, 1046.5].forEach((f, idx) => {
-            this.tone(f, 0.14, "triangle", 0.1, idx * 0.1);
-          });
-        },
-        lose() {
-          this.tone(320, 0.16, "sawtooth", 0.06, 0);
-          this.tone(240, 0.22, "sawtooth", 0.06, 0.14);
-        },
-        speak(text) {
-          if (!this.enabled || !("speechSynthesis" in window)) return;
-          try {
-            window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.lang = "en-US";
-            utter.rate = 1.02;
-            utter.pitch = 1.05;
-            window.speechSynthesis.speak(utter);
-          } catch (e) {}
-        }
-      };
-
-      // ==================== GAME LOGIC HELPERS ====================
-      function getNumberMeta(num) {
-        const n = Number(num);
-        const bigSmall = n >= 5 ? "Big" : "Small";
-        if (n === 0) return { num: 0, bigSmall, colors: ["Violet", "Red"], ballClass: "ball-violet-red" };
-        if (n === 5) return { num: 5, bigSmall, colors: ["Violet", "Green"], ballClass: "ball-violet-green" };
-        if ([1, 3, 7, 9].includes(n)) return { num: n, bigSmall, colors: ["Green"], ballClass: "ball-green" };
-        return { num: n, bigSmall, colors: ["Red"], ballClass: "ball-red" };
-      }
-
-      function dotHex(colorName) {
-        if (colorName === "Green") return "#22c55e";
-        if (colorName === "Violet") return "#a855f7";
-        return "#ef4444";
-      }
-
-      function formatINR(val) {
-        return "₹" + Number(val || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-
-      function formatWholeINR(val) {
-        return Number(val || 0).toLocaleString("en-IN");
-      }
-
-      function seedHistory(modeSec) {
-        const baseSeed = modeSec === 30 ? [5, 3, 3, 7, 8, 6, 1, 7, 2, 2] : [4, 9, 0, 5, 2, 8, 1, 6, 3, 7];
-        const list = [];
-        for (let i = 0; i < 150; i++) {
-          const num = i < baseSeed.length ? baseSeed[i] : ((i * 7 + modeSec) % 10);
-          const period = String(20261122100050464n - BigInt(i));
-          list.push({ period, ...getNumberMeta(num) });
-        }
-        return list;
-      }
-
-      // ==================== APP STATE ====================
-      const state = {
-        authMode: "register",
-        currentUser: readStore("jalwa_current_user", null),
-        users: readStore("jalwa_users", {}),
-        modeSec: 30,
-        multiplier: 1,
-        baseAmount: 10,
-        depositAmount: MIN_FUND,
-        pendingBet: null,
-        historyTab: "game",
-        page: 1,
-        totalPages: 50,
-        periodSeq: { 30: 20261122100050465n, 60: 20261122200010210n, 180: 20261122300005112n, 300: 20261122500002084n },
-        histories: {
-          30: seedHistory(30),
-          60: seedHistory(60),
-          180: seedHistory(180),
-          300: seedHistory(300)
-        },
-        myBets: readStore("jalwa_my_bets", []),
-        withdrawals: readStore("jalwa_withdrawals", []),
-        bankAccount: readStore("jalwa_bank_account", null)
-      };
-
-      function showToast(msg) {
-        const el = document.getElementById("toast");
-        el.textContent = msg;
-        el.classList.add("show");
-        clearTimeout(showToast._t);
-        showToast._t = setTimeout(() => el.classList.remove("show"), 2600);
-      }
-
-      function getBalance() {
-        return state.currentUser ? Number(state.currentUser.balance || 0) : 0;
-      }
-
-      function setBalance(newBal) {
-        const clean = Math.max(0, Number(newBal || 0));
-        if (state.currentUser) {
-          state.currentUser.balance = clean;
-          state.users[state.currentUser.phone] = state.currentUser;
-          writeStore("jalwa_current_user", state.currentUser);
-          writeStore("jalwa_users", state.users);
-        }
-        renderWallet();
-      }
-
-      function renderWallet() {
-        const balText = formatINR(getBalance());
-        document.getElementById("walletBalanceText").textContent = balText;
-        document.getElementById("drawerBalanceText").textContent = balText;
-        document.getElementById("withdrawAvailBalance").textContent = balText;
-        const badge = document.getElementById("activeUserBadge");
-        if (state.currentUser) {
-          badge.textContent = `UID:${state.currentUser.uid}`;
-        }
-      }
-
-      // ==================== SCREEN NAVIGATION ====================
-      function enterGameScreen(userObj) {
-        state.currentUser = userObj;
-        writeStore("jalwa_current_user", userObj);
-        renderWallet();
-        renderHistory();
-        renderWithdrawModal();
-
-        document.getElementById("authContainer").style.display = "none";
-        document.getElementById("gameAppContainer").style.display = "flex";
-
-        SoundEngine.coin();
-        SoundEngine.speak("Welcome to Jalwa Game! Place your bets and good luck.");
-      }
-
-      function showAuthScreen(mode = "register") {
-        state.authMode = mode;
-        const isReg = mode === "register";
-        document.getElementById("authHeading").textContent = isReg ? "Register your phone" : "Log in your phone";
-        document.getElementById("passLabel").textContent = isReg ? "Set password" : "Password";
-        document.getElementById("passwordInput").placeholder = isReg ? "Set password" : "Enter password";
-        document.getElementById("confirmPassGroup").style.display = isReg ? "block" : "none";
-        document.getElementById("inviteGroup").style.display = isReg ? "block" : "none";
-        document.getElementById("authSubmitBtn").textContent = isReg ? "Register" : "Log in";
-        document.getElementById("switchModeText").textContent = isReg ? "I have an account" : "Don't have an account?";
-        document.getElementById("switchModeAction").textContent = isReg ? "Login" : "Register";
-
-        document.getElementById("gameAppContainer").style.display = "none";
-        document.getElementById("authContainer").style.display = "flex";
-      }
-
-      function handleAuthSubmit() {
-        SoundEngine.click();
-        const code = document.getElementById("countryCodeInput").value || "+91";
-        const rawPhone = (document.getElementById("phoneInput").value || "").replace(/\D/g, "");
-        const pass = document.getElementById("passwordInput").value || "123456";
-        const confirmPass = document.getElementById("confirmPasswordInput").value;
-        const agreed = document.getElementById("agreeCheck").checked;
-
-        if (!agreed) {
-          showToast("Please agree to the Privacy Agreement.");
-          return;
-        }
-
-        if (state.authMode === "register" && confirmPass && pass !== confirmPass) {
-          showToast("Passwords do not match.");
-          return;
-        }
-
-        const phoneKey = rawPhone ? `${code}${rawPhone}` : `${code}9000000001`;
-        const existing = state.users[phoneKey];
-
-        if (state.authMode === "login" && existing && existing.password && existing.password !== pass) {
-          showToast("Incorrect password.");
-          return;
-        }
-
-        // New IDs always start with ₹0.00 balance
-        const userRecord = existing
-          ? { ...existing, password: pass }
-          : {
-              phone: phoneKey,
-              password: pass,
-              uid: String(Math.floor(100000 + Math.random() * 900000)),
-              balance: 0
-            };
-
-        state.users[phoneKey] = userRecord;
-        writeStore("jalwa_users", state.users);
-        enterGameScreen(userRecord);
-      }
-
-      // ==================== NUMBER BALLS & HISTORY ====================
-      function buildNumberBalls() {
-        const grid = document.getElementById("numberBallsGrid");
-        grid.innerHTML = "";
-        for (let i = 0; i <= 9; i++) {
-          const meta = getNumberMeta(i);
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = `num-ball ${meta.ballClass}`;
-          btn.textContent = String(i);
-          btn.addEventListener("click", () => openBetDrawer("Number", String(i)));
-          grid.appendChild(btn);
-        }
-      }
-
-      function renderHistory() {
-        const list = state.histories[state.modeSec];
-        const recentRow = document.getElementById("recentBallsRow");
-        recentRow.innerHTML = list
-          .slice(0, 5)
-          .map((item) => {
-            const cls = item.num === 0 ? "ball-violet-red" : item.num === 5 ? "ball-violet-green" : item.colors[0] === "Green" ? "ball-green" : "ball-red";
-            return `<span class="mini-ball ${cls}">${item.num}</span>`;
-          })
-          .join("");
-
-        const tbody = document.getElementById("gameHistoryTbody");
-        const startIdx = ((state.page - 1) * 10) % list.length;
-        const slice = [];
-        for (let k = 0; k < 10; k++) {
-          slice.push(list[(startIdx + k) % list.length]);
-        }
-
-        tbody.innerHTML = slice
-          .map((row) => {
-            const numColor = row.num === 0 || row.num === 5 ? "#c084fc" : row.colors[0] === "Green" ? "#22c55e" : "#f87171";
-            const dots = row.colors
-              .map((c) => `<span class="color-dot" style="background:${dotHex(c)}"></span>`)
-              .join("");
-            return `
-              <tr>
-                <td>${row.period}</td>
-                <td style="color:${numColor};font-size:15px;font-weight:800;">${row.num}</td>
-                <td>${row.bigSmall}</td>
-                <td><span class="dot-row">${dots}</span></td>
-              </tr>
-            `;
-          })
-          .join("");
-
-        // Chart tab
-        const chartView = document.getElementById("chartHistoryView");
-        chartView.innerHTML = slice
-          .map((row) => {
-            const nodes = Array.from({ length: 10 }, (_, d) =>
-              `<span class="chart-node ${d === row.num ? "hit" : ""}">${d}</span>`
-            ).join("");
-            return `
-              <div class="chart-bar-item">
-                <span style="font-size:11px;color:#94a3b8;">${row.period.slice(-6)}</span>
-                <div class="chart-nodes">${nodes}</div>
-              </div>
-            `;
-          })
-          .join("");
-
-        // My history tab
-        const myTbody = document.getElementById("myHistoryTbody");
-        if (!state.myBets.length) {
-          myTbody.innerHTML = `<tr><td colspan="4" style="color:#94a3b8;padding:16px;">No bets placed yet.</td></tr>`;
-        } else {
-          myTbody.innerHTML = state.myBets
-            .slice(0, 15)
-            .map((b) => {
-              const resColor = b.status === "Win" ? "#22c55e" : b.status === "Loss" ? "#f87171" : "#facc15";
-              return `
-                <tr>
-                  <td>${b.period.slice(-6)}</td>
-                  <td>${b.selection}</td>
-                  <td>₹${b.amount}</td>
-                  <td style="color:${resColor};font-weight:800;">${b.status}${b.payout ? ` (+₹${b.payout})` : ""}</td>
-                </tr>
-              `;
-            })
-            .join("");
-        }
-
-        document.getElementById("pageIndicatorText").textContent = `${state.page}/${state.totalPages}`;
-      }
-
-      // ==================== BETTING ====================
-      function openBetDrawer(betType, betVal) {
-        SoundEngine.click();
-        if (getBalance() <= 0) {
-          showToast("Balance is ₹0.00. Minimum deposit is ₹1,000 via UPI.");
-          openDepositModal();
-          return;
-        }
-        state.pendingBet = { betType, betVal };
-        document.getElementById("betDrawerTitle").textContent = `Bet on ${betVal} (${betType})`;
-        updateDrawerSummary();
-        document.getElementById("betDrawerBackdrop").classList.add("open");
-      }
-
-      function updateDrawerSummary() {
-        const total = state.baseAmount * state.multiplier;
-        document.getElementById("drawerMultText").textContent = `X${state.multiplier}`;
-        document.getElementById("drawerTotalText").textContent = `₹${total.toLocaleString("en-IN")}`;
-        document.getElementById("drawerBalanceText").textContent = formatINR(getBalance());
-      }
-
-      function confirmBet() {
-        if (!state.pendingBet) return;
-        const total = state.baseAmount * state.multiplier;
-        const bal = getBalance();
-        if (bal < total) {
-          showToast("Insufficient balance. Minimum deposit is ₹1,000 via UPI.");
-          document.getElementById("betDrawerBackdrop").classList.remove("open");
-          openDepositModal();
-          return;
-        }
-
-        setBalance(bal - total);
-        const periodStr = String(state.periodSeq[state.modeSec]);
-        state.myBets.unshift({
-          period: periodStr,
-          modeSec: state.modeSec,
-          betType: state.pendingBet.betType,
-          betVal: state.pendingBet.betVal,
-          selection: state.pendingBet.betVal,
-          amount: total,
-          status: "Pending",
-          payout: 0
-        });
-        writeStore("jalwa_my_bets", state.myBets);
-
-        document.getElementById("betDrawerBackdrop").classList.remove("open");
-        SoundEngine.coin();
-        SoundEngine.speak(`Bet placed on ${state.pendingBet.betVal}!`);
-        showToast(`Bet placed: ₹${total} on ${state.pendingBet.betVal}`);
-        renderHistory();
-      }
-
-      function settleRound(modeSec, settledPeriod) {
-        const winningNum = Math.floor(Math.random() * 10);
-        const meta = getNumberMeta(winningNum);
-        const entry = { period: settledPeriod, ...meta };
-        state.histories[modeSec].unshift(entry);
-        if (state.histories[modeSec].length > 200) state.histories[modeSec].pop();
-
-        let totalWon = 0;
-        let hadBetThisRound = false;
-
-        state.myBets.forEach((b) => {
-          if (b.modeSec === modeSec && b.period === settledPeriod && b.status === "Pending") {
-            hadBetThisRound = true;
-            let won = false;
-            let multPay = 1.96;
-
-            if (b.betType === "Color") {
-              won = meta.colors.includes(b.betVal);
-              multPay = b.betVal === "Violet" ? 4.5 : 1.96;
-            } else if (b.betType === "BigSmall") {
-              won = meta.bigSmall === b.betVal;
-              multPay = 1.96;
-            } else if (b.betType === "Number") {
-              won = Number(b.betVal) === winningNum;
-              multPay = 9.0;
-            }
-
-            if (won) {
-              const payout = Math.round(b.amount * multPay);
-              b.status = "Win";
-              b.payout = payout;
-              totalWon += payout;
-            } else {
-              b.status = "Loss";
-              b.payout = 0;
-            }
-          }
-        });
-
-        writeStore("jalwa_my_bets", state.myBets);
-        if (totalWon > 0) {
-          setBalance(getBalance() + totalWon);
-        }
-
-        if (modeSec === state.modeSec) {
-          renderHistory();
-          if (hadBetThisRound) {
-            if (totalWon > 0) {
-              SoundEngine.win();
-              SoundEngine.speak(`Result is Number ${winningNum}, ${meta.bigSmall}. Congratulations! You won ${totalWon} rupees.`);
-              showToast(`Result ${winningNum} (${meta.bigSmall}) • You Won ₹${totalWon}!`);
-            } else {
-              SoundEngine.lose();
-              SoundEngine.speak(`Result is Number ${winningNum}, ${meta.bigSmall}. Better luck next round.`);
-              showToast(`Result ${winningNum} (${meta.bigSmall}) • Better luck next time.`);
-            }
-          } else {
-            SoundEngine.tone(587.33, 0.08, "sine", 0.05);
-          }
-        }
-      }
-
-      // ==================== TIMER LOOP ====================
-      let lastAnnounced5Sec = null;
-
-      function tickTimer() {
-        const nowSec = Math.floor(Date.now() / 1000);
-        const rem = state.modeSec - (nowSec % state.modeSec);
-        const prevRem = state.modeSec - (((nowSec - 1) % state.modeSec + state.modeSec) % state.modeSec);
-
-        if (rem > prevRem) {
-          const settledPeriod = String(state.periodSeq[state.modeSec]);
-          state.periodSeq[state.modeSec] = state.periodSeq[state.modeSec] + 1n;
-          lastAnnounced5Sec = null;
-          settleRound(state.modeSec, settledPeriod);
-        }
-
-        const mins = Math.floor(rem / 60);
-        const secs = rem % 60;
-        const mm = String(mins).padStart(2, "0");
-        const ss = String(secs).padStart(2, "0");
-
-        document.getElementById("digitM1").textContent = mm[0];
-        document.getElementById("digitM2").textContent = mm[1];
-        document.getElementById("digitS1").textContent = ss[0];
-        document.getElementById("digitS2").textContent = ss[1];
-        document.getElementById("periodNumberText").textContent = String(state.periodSeq[state.modeSec]);
-
-        const lockOverlay = document.getElementById("lockOverlay");
-        if (rem <= 5) {
-          lockOverlay.classList.add("show");
-          document.getElementById("lockCountBadge").textContent = String(rem).padStart(2, "0");
-          document.getElementById("betDrawerBackdrop").classList.remove("open");
-
-          if (rem === 5 && lastAnnounced5Sec !== 5) {
-            lastAnnounced5Sec = 5;
-            SoundEngine.beep(true);
-            SoundEngine.speak("Stop betting! Five seconds remaining.");
-          } else if (rem <= 3 && rem >= 1 && lastAnnounced5Sec !== rem) {
-            lastAnnounced5Sec = rem;
-            SoundEngine.beep(true);
-            SoundEngine.speak(String(rem));
-          }
-        } else {
-          lockOverlay.classList.remove("show");
-        }
-      }
-
-      // ==================== DEPOSIT & WITHDRAW ====================
-      function getDepositAmount() {
-        const val = Number(document.getElementById("customDepositInput").value || state.depositAmount || MIN_FUND);
-        return val;
-      }
-
-      function syncDepositAmount(amt) {
-        const clean = Math.max(MIN_FUND, Number(amt || MIN_FUND));
-        state.depositAmount = clean;
-        document.getElementById("customDepositInput").value = String(clean);
-        document.getElementById("payBtnAmount").textContent = formatWholeINR(clean);
-        document.querySelectorAll("#depositPresetGrid .preset-chip").forEach((chip) => {
-          chip.classList.toggle("active", Number(chip.dataset.dep) === clean);
-        });
-      }
-
-      function openDepositModal() {
-        SoundEngine.click();
-        const current = getDepositAmount();
-        syncDepositAmount(current < MIN_FUND ? MIN_FUND : current);
-        document.getElementById("depositModal").classList.add("open");
-      }
-
-      function launchUpiPayment(appTarget) {
-        const amt = getDepositAmount();
-        if (!Number.isFinite(amt) || amt < MIN_FUND) {
-          showToast(`Minimum deposit amount is ₹${formatWholeINR(MIN_FUND)}.`);
-          return;
-        }
-        const note = encodeURIComponent(`Jalwa Game Deposit ₹${amt}`);
-        const pn = encodeURIComponent("Jalwa Game");
-        let uri = `upi://pay?pa=${encodeURIComponent(MERCHANT_UPI)}&pn=${pn}&am=${amt}&cu=INR&tn=${note}`;
-
-        if (appTarget === "phonepe") {
-          uri = `phonepe://pay?pa=${encodeURIComponent(MERCHANT_UPI)}&pn=${pn}&am=${amt}&cu=INR&tn=${note}`;
-        } else if (appTarget === "gpay") {
-          uri = `tez://upi/pay?pa=${encodeURIComponent(MERCHANT_UPI)}&pn=${pn}&am=${amt}&cu=INR&tn=${note}`;
-        } else if (appTarget === "paytm") {
-          uri = `paytmmp://pay?pa=${encodeURIComponent(MERCHANT_UPI)}&pn=${pn}&am=${amt}&cu=INR&tn=${note}`;
-        }
-
-        SoundEngine.click();
-        showToast(`Opening UPI app for ₹${formatWholeINR(amt)} to ${MERCHANT_UPI}...`);
-        window.location.href = uri;
-      }
-
-      function renderWithdrawModal() {
-        document.getElementById("withdrawAvailBalance").textContent = formatINR(getBalance());
-        const savedCard = document.getElementById("savedBankCard");
-        if (state.bankAccount) {
-          savedCard.style.display = "block";
-          savedCard.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <strong style="color:#22d3aa;">Saved Bank Account</strong>
-              <button type="button" id="editBankBtn" class="copy-mini-btn">Edit</button>
-            </div>
-            <div><strong>Name:</strong> ${state.bankAccount.holder}</div>
-            <div><strong>Bank:</strong> ${state.bankAccount.bankName}</div>
-            <div><strong>A/C No:</strong> ${state.bankAccount.accountNo}</div>
-            <div><strong>IFSC:</strong> ${state.bankAccount.ifsc}</div>
-          `;
-          document.getElementById("bankFormWrap").style.display = "none";
-          const editBtn = document.getElementById("editBankBtn");
-          if (editBtn) {
-            editBtn.addEventListener("click", () => {
-              document.getElementById("bankNameInput").value = state.bankAccount.bankName;
-              document.getElementById("accountHolderInput").value = state.bankAccount.holder;
-              document.getElementById("accountNumberInput").value = state.bankAccount.accountNo;
-              document.getElementById("ifscCodeInput").value = state.bankAccount.ifsc;
-              document.getElementById("bankFormWrap").style.display = "block";
-            });
-          }
-        } else {
-          savedCard.style.display = "none";
-          document.getElementById("bankFormWrap").style.display = "block";
-        }
-
-        const listEl = document.getElementById("withdrawHistoryList");
-        if (!state.withdrawals.length) {
-          listEl.textContent = "No withdrawals yet.";
-        } else {
-          listEl.innerHTML = state.withdrawals
-            .slice(0, 6)
-            .map(
-              (w) => `
-              <div style="padding:7px 8px;background:#070b29;border-radius:8px;margin-bottom:6px;">
-                <strong>₹${formatWholeINR(w.amount)}</strong> → ${w.accountNo} (${w.ifsc}) • <span style="color:#22d3aa;">${w.status}</span>
-              </div>
-            `
-            )
-            .join("");
-        }
-      }
-
-      // ==================== EVENT WIRING ====================
-      function bindEvents() {
-        document.querySelectorAll(".eye-btn").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const input = document.getElementById(btn.dataset.target);
-            if (!input) return;
-            input.type = input.type === "password" ? "text" : "password";
-          });
-        });
-
-        document.getElementById("langBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          showToast("Language: English (EN)");
-        });
-
-        document.getElementById("authSubmitBtn").addEventListener("click", handleAuthSubmit);
-
-        document.getElementById("switchAuthModeBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          showAuthScreen(state.authMode === "register" ? "login" : "register");
-        });
-
-        const directEnter = () => {
-          SoundEngine.click();
-          const guest = state.currentUser || { phone: "+919000000000", password: "", uid: "800123", balance: 0 };
-          enterGameScreen(guest);
+      `;
+      const logoutEl = document.getElementById("logoutLink");
+      if (logoutEl) {
+        logoutEl.onclick = (e) => {
+          e.preventDefault();
+          currentPhone = "";
+          localStorage.removeItem("jalwa_phone");
+          renderHeader();
         };
+      }
+      document.getElementById("authCard").style.display = "none";
+      document.getElementById("gameArea").style.display = "block";
+    }
 
-        document.getElementById("skipEnterBtn").addEventListener("click", directEnter);
-        document.getElementById("authBackBtn").addEventListener("click", directEnter);
+    function renderNoticeAndUpi() {
+      const upi = (state.config && state.config.upi) || DEFAULT_UPI;
+      const notice = (state.config && state.config.notice) || "न्यूनतम डिपॉज़िट और विड्रॉल ₹1,000 है।";
+      document.getElementById("noticeBox").textContent = notice;
+      document.getElementById("depositUpiDisplay").textContent = upi;
+    }
 
-        document.getElementById("logoutToAuthBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          showAuthScreen("register");
-        });
+    function renderHistory() {
+      const card = document.getElementById("historyCard");
+      if (!card) return;
 
-        document.getElementById("supportBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          showToast("Customer Care: Official support only.");
-        });
+      if (currentHistoryTab === "results") {
+        const list = Array.isArray(state.results) ? state.results.slice().reverse().slice(0, 15) : [];
+        if (!list.length) {
+          card.innerHTML = `<div class="muted">अभी कोई राउंड परिणाम उपलब्ध नहीं है।</div>`;
+          return;
+        }
+        card.innerHTML = `
+          <h4 style="margin:0 0 6px 0;">Recent Results</h4>
+          <table>
+            <thead><tr><th>Period</th><th>Number</th><th>Color</th></tr></thead>
+            <tbody>
+              ${list.map(r => `
+                <tr>
+                  <td>${r.periodId}</td>
+                  <td><b>${r.number}</b></td>
+                  <td>${r.color}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      } else if (currentHistoryTab === "bets") {
+        const myBets = Object.values(state.bets || {})
+          .filter(b => b.phone === currentPhone)
+          .sort((a, b) => (b.time || 0) - (a.time || 0))
+          .slice(0, 20);
+        if (!myBets.length) {
+          card.innerHTML = `<div class="muted">आपने अभी तक कोई बेट नहीं लगाई है।</div>`;
+          return;
+        }
+        card.innerHTML = `
+          <h4 style="margin:0 0 6px 0;">My Bets</h4>
+          <table>
+            <thead><tr><th>Period</th><th>Pick</th><th>Amt</th><th>Status</th></tr></thead>
+            <tbody>
+              ${myBets.map(b => `
+                <tr>
+                  <td>${b.periodId}</td>
+                  <td>${b.betType}: <b>${b.betVal}</b></td>
+                  <td>₹${Number(b.amount).toFixed(0)}</td>
+                  <td><span class="badge ${b.status === 'Won' ? 'approved' : (b.status === 'Lost' ? 'rejected' : 'pending')}">${b.status}${b.payout ? ' +₹' + Number(b.payout).toFixed(0) : ''}</span></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      } else {
+        const deps = Object.values(state.deposits || {}).filter(d => d.phone === currentPhone).map(d => ({ ...d, kind: "Deposit" }));
+        const wds = Object.values(state.withdrawals || {}).filter(w => w.phone === currentPhone).map(w => ({ ...w, kind: "Withdraw" }));
+        const combined = [...deps, ...wds].sort((a, b) => (b.time || 0) - (a.time || 0));
+        if (!combined.length) {
+          card.innerHTML = `<div class="muted">कोई Deposit या Withdraw रिकॉर्ड नहीं मिला।</div>`;
+          return;
+        }
+        card.innerHTML = `
+          <h4 style="margin:0 0 6px 0;">Deposits & Withdrawals</h4>
+          <table>
+            <thead><tr><th>Type</th><th>Amount</th><th>Details</th><th>Status</th></tr></thead>
+            <tbody>
+              ${combined.map(item => `
+                <tr>
+                  <td><b>${item.kind}</b></td>
+                  <td>₹${Number(item.amount).toFixed(0)}</td>
+                  <td>${item.utr || item.upi || "-"}</td>
+                  <td><span class="badge ${item.status}">${item.status}</span></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      }
+    }
 
-        document.getElementById("soundToggleBtn").addEventListener("click", () => {
-          SoundEngine.enabled = !SoundEngine.enabled;
-          document.getElementById("soundToggleBtn").textContent = SoundEngine.enabled ? "🔊" : "🔇";
-          showToast(SoundEngine.enabled ? "Game voice & sound ON" : "Game voice & sound OFF");
-        });
+    window.switchHistoryTab = function(tab) {
+      currentHistoryTab = tab;
+      document.getElementById("tabResultsBtn").classList.toggle("active", tab === "results");
+      document.getElementById("tabBetsBtn").classList.toggle("active", tab === "bets");
+      document.getElementById("tabTxBtn").classList.toggle("active", tab === "tx");
+      renderHistory();
+    };
 
-        document.getElementById("refreshBalanceBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          renderWallet();
-          showToast("Balance refreshed");
-        });
+    window.openModal = function(id) {
+      document.getElementById(id).classList.add("open");
+    };
 
-        document.getElementById("noticeDetailBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          showToast(`Min ₹1,000 • UPI: ${MERCHANT_UPI}`);
-        });
+    window.closeModal = function(id) {
+      document.getElementById(id).classList.remove("open");
+    };
 
-        document.getElementById("howToPlayBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          showToast("Pick Green, Violet, Red, 0-9, or Big/Small before final 5s.");
-        });
+    window.openBet = function(betType, betVal) {
+      if (!currentPhone) return alert("पहले मोबाइल नंबर से लॉगिन करें।");
+      pendingBet = { betType, betVal };
+      document.getElementById("betTitle").textContent = `Bet on ${betVal}`;
+      document.getElementById("betSubtitle").textContent = `Type: ${betType} | Selection: ${betVal}`;
+      document.getElementById("betAmount").value = "";
+      openModal("betModal");
+    };
 
-        document.querySelectorAll("#modeTabs .mode-tab").forEach((tab) => {
-          tab.addEventListener("click", () => {
-            SoundEngine.click();
-            document.querySelectorAll("#modeTabs .mode-tab").forEach((t) => t.classList.remove("active"));
-            tab.classList.add("active");
-            state.modeSec = Number(tab.dataset.mode);
-            const label = state.modeSec === 30 ? "WinGo 30sec" : `WinGo ${state.modeSec / 60}Min`;
-            document.getElementById("ticketModeTitle").textContent = label;
-            state.page = 1;
-            renderHistory();
-            tickTimer();
-          });
-        });
+    window.setBetQuick = function(val) {
+      document.getElementById("betAmount").value = val;
+    };
 
-        document.querySelectorAll(".color-btn, .big-btn, .small-btn").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            openBetDrawer(btn.dataset.betType, btn.dataset.betVal);
-          });
-        });
+    window.submitBet = async function() {
+      if (!currentPhone || !pendingBet) return;
+      const amt = Number(document.getElementById("betAmount").value);
+      if (!amt || amt <= 0) return alert("सही बेट राशि दर्ज करें।");
+      const user = state.users[currentPhone] || { phone: currentPhone, balance: 0 };
+      const bal = Number(user.balance || 0);
+      if (amt > bal) return alert("अपर्याप्त बैलेंस! पहले कम से कम ₹1,000 डिपॉज़िट करें।");
 
-        document.querySelectorAll(".mult-chip").forEach((chip) => {
-          chip.addEventListener("click", () => {
-            SoundEngine.click();
-            document.querySelectorAll(".mult-chip").forEach((c) => c.classList.remove("active"));
-            chip.classList.add("active");
-            state.multiplier = Number(chip.dataset.mult);
-            updateDrawerSummary();
-          });
-        });
+      const { periodId } = getCurrentPeriodInfo();
+      const newBal = bal - amt;
+      await update(ref(db, `users/${currentPhone}`), { phone: currentPhone, balance: newBal });
+      await push(ref(db, "bets"), {
+        phone: currentPhone,
+        periodId,
+        betType: pendingBet.betType,
+        betVal: pendingBet.betVal,
+        amount: amt,
+        status: "Pending",
+        payout: 0,
+        time: Date.now()
+      });
+      closeModal("betModal");
+      alert("बेट सफलतापूर्वक लग गई!");
+    };
 
-        document.getElementById("randomPickBtn").addEventListener("click", () => {
-          const rndNum = Math.floor(Math.random() * 10);
-          openBetDrawer("Number", String(rndNum));
-        });
+    window.submitDeposit = async function() {
+      if (!currentPhone) return alert("पहले लॉगिन करें।");
+      const amt = Number(document.getElementById("depositAmount").value);
+      const utr = document.getElementById("depositUtr").value.trim();
+      if (!amt || amt < MIN_AMOUNT) return alert("न्यूनतम डिपॉज़िट राशि ₹1,000 है।");
+      if (!utr) return alert("कृपया UTR नंबर दर्ज करें।");
 
-        document.getElementById("closeBetDrawer").addEventListener("click", () => {
-          document.getElementById("betDrawerBackdrop").classList.remove("open");
-        });
+      await push(ref(db, "deposits"), {
+        phone: currentPhone,
+        amount: amt,
+        utr,
+        status: "pending",
+        time: Date.now()
+      });
+      document.getElementById("depositAmount").value = "";
+      document.getElementById("depositUtr").value = "";
+      closeModal("depositModal");
+      alert("डिपॉज़िट रिक्वेस्ट भेज दी गई है। एडमिन अप्रूवल के बाद बैलेंस जुड़ जाएगा।");
+    };
 
-        document.querySelectorAll("#baseAmountGrid .preset-chip").forEach((chip) => {
-          chip.addEventListener("click", () => {
-            SoundEngine.click();
-            document.querySelectorAll("#baseAmountGrid .preset-chip").forEach((c) => c.classList.remove("active"));
-            chip.classList.add("active");
-            state.baseAmount = Number(chip.dataset.amt);
-            updateDrawerSummary();
-          });
-        });
+    window.submitWithdraw = async function() {
+      if (!currentPhone) return alert("पहले लॉगिन करें।");
+      const amt = Number(document.getElementById("withdrawAmount").value);
+      const upi = document.getElementById("withdrawUpi").value.trim();
+      if (!amt || amt < MIN_AMOUNT) return alert("न्यूनतम विड्रॉल राशि ₹1,000 है।");
+      if (!upi) return alert("कृपया अपना UPI ID दर्ज करें।");
 
-        document.getElementById("confirmBetBtn").addEventListener("click", confirmBet);
+      const user = state.users[currentPhone] || { phone: currentPhone, balance: 0 };
+      const bal = Number(user.balance || 0);
+      if (amt > bal) return alert("आपके वॉलेट में पर्याप्त बैलेंस नहीं है।");
 
-        document.querySelectorAll(".hist-tab").forEach((tab) => {
-          tab.addEventListener("click", () => {
-            SoundEngine.click();
-            document.querySelectorAll(".hist-tab").forEach((t) => t.classList.remove("active"));
-            tab.classList.add("active");
-            state.historyTab = tab.dataset.htab;
-            document.getElementById("gameHistoryView").style.display = state.historyTab === "game" ? "block" : "none";
-            document.getElementById("chartHistoryView").style.display = state.historyTab === "chart" ? "block" : "none";
-            document.getElementById("myHistoryView").style.display = state.historyTab === "my" ? "block" : "none";
-          });
-        });
+      await update(ref(db, `users/${currentPhone}`), { phone: currentPhone, balance: bal - amt });
+      await push(ref(db, "withdrawals"), {
+        phone: currentPhone,
+        amount: amt,
+        upi,
+        status: "pending",
+        time: Date.now()
+      });
+      document.getElementById("withdrawAmount").value = "";
+      document.getElementById("withdrawUpi").value = "";
+      closeModal("withdrawModal");
+      alert("विड्रॉल रिक्वेस्ट सबमिट हो गई है।");
+    };
 
-        document.getElementById("prevPageBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          if (state.page > 1) {
-            state.page -= 1;
-            renderHistory();
-          }
-        });
-
-        document.getElementById("nextPageBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          if (state.page < state.totalPages) {
-            state.page += 1;
-            renderHistory();
-          }
-        });
-
-        document.querySelectorAll("[data-close]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const modalId = btn.getAttribute("data-close");
-            document.getElementById(modalId).classList.remove("open");
-          });
-        });
-
-        // Deposit wiring
-        document.getElementById("openDepositBtn").addEventListener("click", openDepositModal);
-
-        document.querySelectorAll("#depositPresetGrid .preset-chip").forEach((chip) => {
-          chip.addEventListener("click", () => {
-            SoundEngine.click();
-            syncDepositAmount(Number(chip.dataset.dep));
-          });
-        });
-
-        document.getElementById("customDepositInput").addEventListener("input", (e) => {
-          const val = Number(e.target.value || 0);
-          state.depositAmount = val;
-          document.getElementById("payBtnAmount").textContent = formatWholeINR(val > 0 ? val : 0);
-        });
-
-        document.getElementById("copyUpiBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(MERCHANT_UPI).catch(() => {});
-          }
-          showToast(`Copied UPI ID: ${MERCHANT_UPI}`);
-        });
-
-        document.getElementById("launchDefaultUpiBtn").addEventListener("click", () => launchUpiPayment("default"));
-        document.querySelectorAll("[data-upi-app]").forEach((btn) => {
-          btn.addEventListener("click", () => launchUpiPayment(btn.dataset.upiApp));
-        });
-
-        document.getElementById("submitUtrBtn").addEventListener("click", () => {
-          const amt = getDepositAmount();
-          if (!Number.isFinite(amt) || amt < MIN_FUND) {
-            showToast(`Minimum deposit amount is ₹${formatWholeINR(MIN_FUND)}.`);
-            return;
-          }
-          const utr = (document.getElementById("utrInput").value || "").trim();
-          if (utr.length < 6) {
-            showToast("Please enter a valid UTR number.");
-            return;
-          }
-          setBalance(getBalance() + amt);
-          document.getElementById("utrInput").value = "";
-          document.getElementById("depositModal").classList.remove("open");
-          SoundEngine.coin();
-          SoundEngine.speak(`Deposit of ${amt} rupees added to wallet.`);
-          showToast(`₹${formatWholeINR(amt)} added to wallet balance!`);
-        });
-
-        // Withdraw wiring
-        document.getElementById("openWithdrawBtn").addEventListener("click", () => {
-          SoundEngine.click();
-          renderWithdrawModal();
-          document.getElementById("withdrawModal").classList.add("open");
-        });
-
-        document.getElementById("saveBankBtn").addEventListener("click", () => {
-          const bankName = (document.getElementById("bankNameInput").value || "").trim();
-          const holder = (document.getElementById("accountHolderInput").value || "").trim();
-          const accountNo = (document.getElementById("accountNumberInput").value || "").trim();
-          const ifsc = (document.getElementById("ifscCodeInput").value || "").trim().toUpperCase();
-
-          if (!bankName || !holder || accountNo.length < 6 || ifsc.length < 8) {
-            showToast("Please enter valid Bank Name, Holder Name, Account No & IFSC.");
-            return;
-          }
-
-          state.bankAccount = { bankName, holder, accountNo, ifsc };
-          writeStore("jalwa_bank_account", state.bankAccount);
-          SoundEngine.coin();
-          showToast("Bank account details saved.");
-          renderWithdrawModal();
-        });
-
-        document.getElementById("submitWithdrawBtn").addEventListener("click", () => {
-          if (!state.bankAccount) {
-            showToast("Please save your bank account details first.");
-            return;
-          }
-          const amt = Number(document.getElementById("withdrawAmountInput").value || 0);
-          if (!Number.isFinite(amt) || amt < MIN_FUND) {
-            showToast(`Minimum withdrawal amount is ₹${formatWholeINR(MIN_FUND)}.`);
-            return;
-          }
-          if (amt > getBalance()) {
-            showToast("Insufficient balance for withdrawal.");
-            return;
-          }
-
-          setBalance(getBalance() - amt);
-          state.withdrawals.unshift({
-            amount: amt,
-            bankName: state.bankAccount.bankName,
-            holder: state.bankAccount.holder,
-            accountNo: state.bankAccount.accountNo,
-            ifsc: state.bankAccount.ifsc,
-            status: "Processing"
-          });
-          writeStore("jalwa_withdrawals", state.withdrawals);
-          document.getElementById("withdrawAmountInput").value = "";
-          SoundEngine.coin();
-          SoundEngine.speak(`Withdrawal request of ${amt} rupees submitted.`);
-          showToast(`Withdrawal request for ₹${formatWholeINR(amt)} submitted.`);
-          renderWithdrawModal();
+    document.getElementById("loginBtn").onclick = async () => {
+      const phone = document.getElementById("phoneInput").value.trim();
+      if (!/^\d{10}$/.test(phone)) return alert("कृपया 10 अंकों का सही मोबाइल नंबर डालें।");
+      currentPhone = phone;
+      localStorage.setItem("jalwa_phone", phone);
+      if (!state.users[phone]) {
+        await set(ref(db, `users/${phone}`), {
+          phone,
+          balance: 0,
+          createdAt: Date.now()
         });
       }
-
-      // ==================== INIT ====================
-      buildNumberBalls();
+      renderHeader();
       renderHistory();
-      renderWithdrawModal();
-      bindEvents();
-      tickTimer();
-      setInterval(tickTimer, 1000);
-      showAuthScreen("register");
-    })();
+    };
+
+    // 5 Taps on Logo to open Admin PIN Modal
+    document.getElementById("logoTap").onclick = () => {
+      logoTaps += 1;
+      clearTimeout(logoTapTimer);
+      logoTapTimer = setTimeout(() => { logoTaps = 0; }, 1400);
+      if (logoTaps >= 5) {
+        logoTaps = 0;
+        document.getElementById("adminPinInput").value = "";
+        openModal("adminPinModal");
+      }
+    };
+
+    window.verifyAdminPin = function() {
+      const pin = document.getElementById("adminPinInput").value.trim();
+      if (pin !== ADMIN_PIN) return alert("गलत PIN!");
+      closeModal("adminPinModal");
+      currentAdminTab = "users";
+      openModal("adminPanelModal");
+      renderAdminPanel();
+    };
+
+    window.switchAdminTab = function(tab) {
+      currentAdminTab = tab;
+      ["users", "deposits", "withdrawals", "config"].forEach(t => {
+        const btnId = "admTab" + t.charAt(0).toUpperCase() + t.slice(1);
+        const el = document.getElementById(btnId);
+        if (el) el.classList.toggle("active", t === tab);
+      });
+      renderAdminPanel();
+    };
+
+    function renderAdminPanel() {
+      const body = document.getElementById("adminBody");
+      if (!body || !document.getElementById("adminPanelModal").classList.contains("open")) return;
+
+      if (currentAdminTab === "users") {
+        const list = Object.values(state.users || {});
+        if (!list.length) {
+          body.innerHTML = `<div class="muted">कोई यूज़र नहीं मिला।</div>`;
+          return;
+        }
+        body.innerHTML = list.map(u => `
+          <div class="card" style="margin-top:8px;">
+            <div class="flex-between">
+              <div><b>${u.phone}</b><br><span class="muted">Balance: ₹${Number(u.balance || 0).toFixed(2)}</span></div>
+              <div class="row">
+                <button class="btn-sm btn-green" onclick="adminAdjustBalance('${u.phone}', 1000)">+₹1000</button>
+                <button class="btn-sm btn-red" onclick="adminResetBalance('${u.phone}')">Reset ₹0</button>
+              </div>
+            </div>
+            <div class="row mt-2">
+              <input type="number" id="customBal_${u.phone}" placeholder="नया बैलेंस सेट करें" style="flex:1;" />
+              <button class="btn-sm btn-primary" style="width:auto;" onclick="adminSetExactBalance('${u.phone}')">Set</button>
+            </div>
+          </div>
+        `).join("");
+      } else if (currentAdminTab === "deposits") {
+        const entries = Object.entries(state.deposits || {}).sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
+        if (!entries.length) {
+          body.innerHTML = `<div class="muted">कोई डिपॉज़िट रिक्वेस्ट नहीं है।</div>`;
+          return;
+        }
+        body.innerHTML = entries.map(([id, d]) => `
+          <div class="card" style="margin-top:8px;">
+            <div class="flex-between">
+              <div>
+                <b>${d.phone}</b> · ₹${Number(d.amount).toFixed(0)}<br>
+                <span class="muted">UTR: ${d.utr}</span>
+              </div>
+              <span class="badge ${d.status}">${d.status}</span>
+            </div>
+            ${d.status === "pending" ? `
+              <div class="row mt-2">
+                <button class="btn-sm btn-green" onclick="adminApproveDeposit('${id}')">Approve & Add</button>
+                <button class="btn-sm btn-red" onclick="adminRejectDeposit('${id}')">Reject</button>
+              </div>
+            ` : ""}
+          </div>
+        `).join("");
+      } else if (currentAdminTab === "withdrawals") {
+        const entries = Object.entries(state.withdrawals || {}).sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
+        if (!entries.length) {
+          body.innerHTML = `<div class="muted">कोई विड्रॉल रिक्वेस्ट नहीं है।</div>`;
+          return;
+        }
+        body.innerHTML = entries.map(([id, w]) => `
+          <div class="card" style="margin-top:8px;">
+            <div class="flex-between">
+              <div>
+                <b>${w.phone}</b> · ₹${Number(w.amount).toFixed(0)}<br>
+                <span class="muted">UPI: ${w.upi}</span>
+              </div>
+              <span class="badge ${w.status}">${w.status}</span>
+            </div>
+            ${w.status === "pending" ? `
+              <div class="row mt-2">
+                <button class="btn-sm btn-green" onclick="adminApproveWithdraw('${id}')">Approve Paid</button>
+                <button class="btn-sm btn-red" onclick="adminRefundWithdraw('${id}')">Reject & Refund</button>
+              </div>
+            ` : ""}
+          </div>
+        `).join("");
+      } else {
+        const cfg = state.config || {};
+        body.innerHTML = `
+          <label class="muted">Forced Next Round Number (0-9, खाली छोड़ने पर रैंडम)</label>
+          <input type="number" id="cfgForcedNum" min="0" max="9" value="${cfg.forcedNumber ?? ""}" placeholder="0 से 9" class="mt-2" />
+          <label class="muted mt-3" style="display:block;">Merchant UPI ID</label>
+          <input type="text" id="cfgUpi" value="${cfg.upi || DEFAULT_UPI}" class="mt-2" />
+          <label class="muted mt-3" style="display:block;">Top Notice Banner</label>
+          <input type="text" id="cfgNotice" value="${cfg.notice || ""}" class="mt-2" />
+          <button class="btn-gold mt-3" style="width:100%;" onclick="adminSaveConfig()">Save Configuration</button>
+        `;
+      }
+    }
+
+    window.adminAdjustBalance = async function(phone, delta) {
+      const cur = Number((state.users[phone] && state.users[phone].balance) || 0);
+      await update(ref(db, `users/${phone}`), { phone, balance: Math.max(0, cur + delta) });
+    };
+
+    window.adminResetBalance = async function(phone) {
+      await update(ref(db, `users/${phone}`), { phone, balance: 0 });
+    };
+
+    window.adminSetExactBalance = async function(phone) {
+      const val = Number(document.getElementById(`customBal_${phone}`).value);
+      if (isNaN(val) || val < 0) return alert("सही बैलेंस डालें।");
+      await update(ref(db, `users/${phone}`), { phone, balance: val });
+    };
+
+    window.adminApproveDeposit = async function(id) {
+      const d = state.deposits[id];
+      if (!d || d.status !== "pending") return;
+      const curBal = Number((state.users[d.phone] && state.users[d.phone].balance) || 0);
+      await update(ref(db, `users/${d.phone}`), { phone: d.phone, balance: curBal + Number(d.amount) });
+      await update(ref(db, `deposits/${id}`), { status: "approved" });
+    };
+
+    window.adminRejectDeposit = async function(id) {
+      const d = state.deposits[id];
+      if (!d || d.status !== "pending") return;
+      await update(ref(db, `deposits/${id}`), { status: "rejected" });
+    };
+
+    window.adminApproveWithdraw = async function(id) {
+      const w = state.withdrawals[id];
+      if (!w || w.status !== "pending") return;
+      await update(ref(db, `withdrawals/${id}`), { status: "approved" });
+    };
+
+    window.adminRefundWithdraw = async function(id) {
+      const w = state.withdrawals[id];
+      if (!w || w.status !== "pending") return;
+      const curBal = Number((state.users[w.phone] && state.users[w.phone].balance) || 0);
+      await update(ref(db, `users/${w.phone}`), { phone: w.phone, balance: curBal + Number(w.amount) });
+      await update(ref(db, `withdrawals/${id}`), { status: "rejected" });
+    };
+
+    window.adminSaveConfig = async function() {
+      const forcedRaw = document.getElementById("cfgForcedNum").value.trim();
+      const forcedNumber = forcedRaw === "" ? "" : String(Math.max(0, Math.min(9, Number(forcedRaw))));
+      const upi = document.getElementById("cfgUpi").value.trim() || DEFAULT_UPI;
+      const notice = document.getElementById("cfgNotice").value.trim();
+      await set(ref(db, "config"), { forcedNumber, upi, notice });
+      alert("सेटिंग्स सेव हो गईं!");
+    };
+
+    async function settleRoundIfNeeded(prevPeriodId) {
+      if (!prevPeriodId || state.lastProcessedPeriod === prevPeriodId) return;
+      const snap = await get(ref(db, "lastProcessedPeriod"));
+      if (snap.exists() && snap.val() === prevPeriodId) {
+        state.lastProcessedPeriod = prevPeriodId;
+        return;
+      }
+
+      const forced = state.config && state.config.forcedNumber;
+      const winNum = (forced !== "" && forced !== undefined && forced !== null)
+        ? String(forced)
+        : String(Math.floor(Math.random() * 10));
+      const color = getColorForNumber(winNum);
+
+      const currentResults = Array.isArray(state.results) ? state.results.slice(-49) : [];
+      currentResults.push({ periodId: prevPeriodId, number: winNum, color, time: Date.now() });
+
+      const betEntries = Object.entries(state.bets || {});
+      for (const [betId, b] of betEntries) {
+        if (b.periodId === prevPeriodId && b.status === "Pending") {
+          const mult = computePayout(b.betType, b.betVal, winNum);
+          const payout = Number(b.amount) * mult;
+          const status = payout > 0 ? "Won" : "Lost";
+          await update(ref(db, `bets/${betId}`), { status, payout });
+          if (payout > 0 && b.phone) {
+            const uSnap = await get(ref(db, `users/${b.phone}`));
+            const uBal = uSnap.exists() ? Number(uSnap.val().balance || 0) : 0;
+            await update(ref(db, `users/${b.phone}`), { phone: b.phone, balance: uBal + payout });
+          }
+        }
+      }
+
+      if (forced !== "" && forced !== undefined && forced !== null) {
+        await update(ref(db, "config"), { forcedNumber: "" });
+      }
+      await set(ref(db, "results"), currentResults);
+      await set(ref(db, "lastProcessedPeriod"), prevPeriodId);
+      state.lastProcessedPeriod = prevPeriodId;
+    }
+
+    let lastSeenPeriodId = null;
+    setInterval(() => {
+      const { periodId, remaining } = getCurrentPeriodInfo();
+      const pEl = document.getElementById("periodId");
+      const cEl = document.getElementById("countdown");
+      if (pEl) pEl.textContent = periodId;
+      if (cEl) cEl.textContent = `${remaining}s`;
+
+      if (lastSeenPeriodId && lastSeenPeriodId !== periodId) {
+        settleRoundIfNeeded(lastSeenPeriodId);
+      }
+      lastSeenPeriodId = periodId;
+    }, 1000);
+
+    // Realtime Database Listeners
+    onValue(ref(db, ".info/connected"), (snap) => {
+      const el = document.getElementById("syncStatus");
+      if (!el) return;
+      if (snap.val() === true) {
+        el.textContent = "Firebase: Connected";
+        el.style.color = "#4ade80";
+      } else {
+        el.textContent = "Firebase: Connecting...";
+        el.style.color = "#fbbf24";
+      }
+    });
+
+    onValue(ref(db, "config"), (snap) => {
+      if (snap.exists()) {
+        state.config = { ...state.config, ...snap.val() };
+      } else {
+        set(ref(db, "config"), state.config);
+      }
+      renderNoticeAndUpi();
+      renderAdminPanel();
+    });
+
+    onValue(ref(db, "users"), (snap) => {
+      state.users = snap.exists() ? snap.val() : {};
+      renderHeader();
+      renderAdminPanel();
+    });
+
+    onValue(ref(db, "deposits"), (snap) => {
+      state.deposits = snap.exists() ? snap.val() : {};
+      renderHistory();
+      renderAdminPanel();
+    });
+
+    onValue(ref(db, "withdrawals"), (snap) => {
+      state.withdrawals = snap.exists() ? snap.val() : {};
+      renderHistory();
+      renderAdminPanel();
+    });
+
+    onValue(ref(db, "bets"), (snap) => {
+      state.bets = snap.exists() ? snap.val() : {};
+      renderHistory();
+    });
+
+    onValue(ref(db, "results"), (snap) => {
+      state.results = snap.exists() ? snap.val() : [];
+      renderHistory();
+    });
+
+    onValue(ref(db, "lastProcessedPeriod"), (snap) => {
+      if (snap.exists()) state.lastProcessedPeriod = snap.val();
+    });
+
+    renderHeader();
+    renderNoticeAndUpi();
+    renderHistory();
   </script>
 </body>
 </html>
