@@ -41,11 +41,6 @@
       border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer;
     }
     .top-right { display: flex; align-items: center; gap: 6px; }
-    .admin-pill {
-      background: rgba(245, 158, 11, 0.16); color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.45); border-radius: 999px;
-      padding: 4px 9px; font-size: 11px; font-weight: 700; cursor: pointer;
-    }
 
     .reg-card {
       background: linear-gradient(180deg, #111930, #0d1324);
@@ -259,6 +254,78 @@
       text-decoration: none; padding: 10px 12px; border-radius: 10px;
       font-weight: 700; font-size: 13px; margin-top: 8px;
     }
+
+    /* Win / Loss Result Logo Card */
+    .result-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.78);
+      display: none; align-items: center; justify-content: center;
+      z-index: 80; padding: 16px;
+    }
+    .result-overlay.open { display: flex; }
+    .result-card {
+      width: 100%; max-width: 340px; border-radius: 26px;
+      padding: 46px 16px 18px 16px; position: relative;
+      color: #ffffff; text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.65);
+    }
+    .result-card.theme-win {
+      background: linear-gradient(180deg, #ff7a45 0%, #f44336 100%);
+    }
+    .result-card.theme-loss {
+      background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+    }
+    .result-badge-wrap {
+      position: absolute; top: -38px; left: 50%; transform: translateX(-50%);
+      width: 84px; height: 64px; display: flex; align-items: center; justify-content: center;
+    }
+    .result-wings {
+      position: absolute; width: 112px; height: 42px; border-radius: 999px;
+      background: rgba(255,255,255,0.28); filter: blur(1px);
+    }
+    .result-medallion {
+      position: relative; width: 58px; height: 58px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fde047, #eab308);
+      border: 3px solid #fef08a; display: flex; align-items: center; justify-content: center;
+      font-size: 26px; box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+    }
+    .result-title { font-size: 22px; font-weight: 900; letter-spacing: 0.3px; margin-top: 2px; }
+    .result-lottery-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; font-weight: 700;
+    }
+    .res-chip {
+      padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #fff;
+    }
+    .res-ball {
+      width: 22px; height: 22px; border-radius: 50%; display: inline-flex;
+      align-items: center; justify-content: center; font-size: 11px; font-weight: 900;
+      border: 1.5px solid rgba(255,255,255,0.8);
+    }
+    .result-slot-bar {
+      height: 12px; border-radius: 999px; background: rgba(70, 18, 12, 0.45);
+      margin-top: 14px; position: relative;
+    }
+    .result-slip {
+      background: linear-gradient(180deg, #fff7ed 0%, #ffffff 65%, #f1f5f9 100%);
+      color: #1e293b; margin: -4px 10px 0 10px;
+      padding: 12px 12px 14px 12px;
+      clip-path: polygon(0 0, 100% 0, 100% 88%, 92% 100%, 84% 88%, 76% 100%, 68% 88%, 60% 100%, 52% 88%, 44% 100%, 36% 88%, 28% 100%, 20% 88%, 12% 100%, 4% 88%, 0 100%);
+    }
+    .result-slip-label { font-size: 12px; font-weight: 800; color: #64748b; }
+    .result-slip-amount { font-size: 24px; font-weight: 900; margin-top: 2px; }
+    .theme-win .result-slip-amount { color: #ef4444; }
+    .theme-loss .result-slip-amount { color: #16a34a; }
+    .result-period-text { font-size: 11px; color: #64748b; margin-top: 6px; font-weight: 600; }
+    .result-autoclose {
+      display: flex; align-items: center; gap: 8px; margin-top: 14px;
+      font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.92);
+      cursor: pointer;
+    }
+    .autoclose-circle {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.85);
+      display: inline-flex; align-items: center; justify-content: center; font-size: 10px;
+    }
   </style>
 </head>
 <body>
@@ -266,12 +333,11 @@
     <header class="topbar">
       <div class="top-left">
         <span class="back-arrow" id="backBtn" title="Back / Logout">‹</span>
-        <div class="brand" id="logoTap" title="5 बार टैप करें">Jalwa<span>.Game</span></div>
+        <div class="brand" id="logoTap">Jalwa<span>.Game</span></div>
         <span class="uid-pill" id="uidBadge" style="display:none;">UID:786661</span>
       </div>
       <div class="top-right">
         <button class="lang-pill" type="button" id="langToggleBtn">🇺🇸 EN</button>
-        <button class="admin-pill" type="button" id="adminQuickBtn">Admin</button>
       </div>
     </header>
 
@@ -413,6 +479,33 @@
     </div>
   </div>
 
+  <!-- Win / Loss Logo Popup Card -->
+  <div class="result-overlay" id="roundResultOverlay" onclick="hideRoundResultPopup()">
+    <div class="result-card theme-win" id="roundResultCard" onclick="event.stopPropagation()">
+      <div class="result-badge-wrap">
+        <div class="result-wings"></div>
+        <div class="result-medallion" id="resultIconBadge">🚀</div>
+      </div>
+      <div class="result-title" id="resultHeading">Congratulations</div>
+      <div class="result-lottery-row">
+        <span>Lottery results</span>
+        <span class="res-chip" id="resColorChip" style="background:#16a34a;">Green</span>
+        <span class="res-ball" id="resNumBall" style="background:#16a34a;">1</span>
+        <span class="res-chip" id="resSizeChip" style="background:#16a34a;">Small</span>
+      </div>
+      <div class="result-slot-bar"></div>
+      <div class="result-slip">
+        <div class="result-slip-label" id="resultSlipLabel">Bonus</div>
+        <div class="result-slip-amount" id="resultSlipAmount">₹0</div>
+        <div class="result-period-text" id="resultPeriodText">Period: 30s</div>
+      </div>
+      <div class="result-autoclose" id="resultAutoCloseBtn" onclick="hideRoundResultPopup()">
+        <span class="autoclose-circle" id="resultCountdownBadge">3</span>
+        <span>3 seconds auto close</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Bet Modal -->
   <div class="modal-bg" id="betModal">
     <div class="modal">
@@ -499,7 +592,7 @@
         <h3 style="margin:0;">Admin Unlock</h3>
         <button class="btn-sm" type="button" onclick="closeModal('adminPinModal')">✕</button>
       </div>
-      <input class="modal-inp mt-3" type="password" id="adminPinInput" placeholder="4-अंकों का Admin PIN डालें (9999)" maxlength="6" />
+      <input class="modal-inp mt-3" type="password" id="adminPinInput" placeholder="4-अंकों का Admin PIN डालें" maxlength="6" />
       <button class="btn-gold mt-3" type="button" style="width:100%;padding:10px;border-radius:10px;" onclick="verifyAdminPin()">Unlock Panel</button>
     </div>
   </div>
@@ -556,6 +649,8 @@
     let logoTapTimer = null;
     let fb = null;
     let isHindi = false;
+    let resultAutoCloseTimer = null;
+    let resultCountdownInterval = null;
 
     const savedState = readStore(STATE_KEY, null);
     let state = {
@@ -584,6 +679,82 @@
 
     function isNumberAlreadyRegistered(phone) {
       return Boolean(registeredNumbers[phone] || (state.users && state.users[phone]));
+    }
+
+    window.hideRoundResultPopup = function() {
+      const overlay = document.getElementById("roundResultOverlay");
+      if (overlay) overlay.classList.remove("open");
+      if (resultAutoCloseTimer) {
+        clearTimeout(resultAutoCloseTimer);
+        resultAutoCloseTimer = null;
+      }
+      if (resultCountdownInterval) {
+        clearInterval(resultCountdownInterval);
+        resultCountdownInterval = null;
+      }
+    };
+
+    function showRoundResultPopup({ won, amount, periodId, winNum }) {
+      const overlay = document.getElementById("roundResultOverlay");
+      const card = document.getElementById("roundResultCard");
+      const iconBadge = document.getElementById("resultIconBadge");
+      const heading = document.getElementById("resultHeading");
+      const colorChip = document.getElementById("resColorChip");
+      const numBall = document.getElementById("resNumBall");
+      const sizeChip = document.getElementById("resSizeChip");
+      const slipLabel = document.getElementById("resultSlipLabel");
+      const slipAmount = document.getElementById("resultSlipAmount");
+      const periodText = document.getElementById("resultPeriodText");
+      const cdBadge = document.getElementById("resultCountdownBadge");
+
+      if (!overlay || !card) return;
+
+      const n = Number(winNum);
+      const primaryColor = n === 0 || n === 2 || n === 4 || n === 6 || n === 8 ? "Red" : "Green";
+      const sizeLabel = n < 5 ? "Small" : "Big";
+
+      card.classList.remove("theme-win", "theme-loss");
+      card.classList.add(won ? "theme-win" : "theme-loss");
+
+      if (iconBadge) iconBadge.textContent = won ? "🚀" : "🍀";
+      if (heading) heading.textContent = won ? "Congratulations" : "Sorry! Try Again";
+
+      if (colorChip) {
+        colorChip.textContent = primaryColor;
+        colorChip.style.background = primaryColor === "Red" ? "#ef4444" : "#16a34a";
+      }
+      if (numBall) {
+        numBall.textContent = String(winNum);
+        numBall.style.cssText = ballBgStyle(winNum);
+      }
+      if (sizeChip) {
+        sizeChip.textContent = sizeLabel;
+        sizeChip.style.background = sizeLabel === "Small" ? "#16a34a" : "#3b82f6";
+      }
+
+      if (slipLabel) slipLabel.textContent = won ? "Bonus" : "Bet Lost";
+      if (slipAmount) slipAmount.textContent = won ? `₹${Number(amount || 0).toFixed(0)}` : `-₹${Number(amount || 0).toFixed(0)}`;
+      if (periodText) periodText.textContent = `Period: ${roundSeconds}s ${periodId}`;
+
+      let leftSec = 3;
+      if (cdBadge) cdBadge.textContent = String(leftSec);
+      overlay.classList.add("open");
+
+      if (resultAutoCloseTimer) clearTimeout(resultAutoCloseTimer);
+      if (resultCountdownInterval) clearInterval(resultCountdownInterval);
+
+      resultCountdownInterval = setInterval(() => {
+        leftSec -= 1;
+        if (cdBadge) cdBadge.textContent = String(Math.max(0, leftSec));
+        if (leftSec <= 0 && resultCountdownInterval) {
+          clearInterval(resultCountdownInterval);
+          resultCountdownInterval = null;
+        }
+      }, 1000);
+
+      resultAutoCloseTimer = setTimeout(() => {
+        hideRoundResultPopup();
+      }, 3000);
     }
 
     window.setAuthMode = function(mode) {
@@ -742,7 +913,7 @@
     function verifyAdminPin() {
       const pin = (document.getElementById("adminPinInput").value || "").trim();
       if (pin !== ADMIN_PIN) {
-        alert("गलत PIN! सही PIN 9999 है।");
+        alert("गलत PIN!");
         return;
       }
       closeModal("adminPinModal");
@@ -1077,7 +1248,7 @@
       closeModal("depositModal");
       renderHistory();
       renderAdminPanel();
-      alert("डिपॉज़िट रिक्वेस्ट सबमिट हो गई है! Admin Panel के Deposits टैब में जाकर Approve & Add करें।");
+      alert("डिपॉज़िट रिक्वेस्ट सबमिट हो गई है! अप्रूवल के बाद बैलेंस वॉलेट में जुड़ जाएगा।");
     };
 
     window.submitWithdraw = function() {
@@ -1240,8 +1411,6 @@
         openAdminPinPrompt();
       }
     };
-
-    document.getElementById("adminQuickBtn").onclick = openAdminPinPrompt;
 
     function renderAdminPanel() {
       const body = document.getElementById("adminBody");
@@ -1451,6 +1620,10 @@
       state.lastProcessedPeriod = prevPeriodId;
       renderHistory();
 
+      let currentUserWonAmount = 0;
+      let currentUserLostAmount = 0;
+      let currentUserHadBet = false;
+
       const betEntries = Object.entries(state.bets || {});
       for (const [betId, b] of betEntries) {
         if (b.periodId === prevPeriodId && b.status === "Pending") {
@@ -1460,6 +1633,13 @@
           b.status = status;
           b.payout = payout;
           dbSetSafe(`bets/${betId}`, b);
+
+          if (currentPhone && b.phone === currentPhone) {
+            currentUserHadBet = true;
+            if (payout > 0) currentUserWonAmount += payout;
+            else currentUserLostAmount += Number(b.amount || 0);
+          }
+
           if (payout > 0 && b.phone) {
             const u = state.users[b.phone] || { phone: b.phone, balance: 0 };
             const nextBal = Number(u.balance || 0) + payout;
@@ -1478,6 +1658,24 @@
       dbSetSafe("lastProcessedPeriod", prevPeriodId);
       renderScreenState();
       renderHistory();
+
+      if (currentPhone && currentUserHadBet) {
+        if (currentUserWonAmount > 0) {
+          showRoundResultPopup({
+            won: true,
+            amount: currentUserWonAmount,
+            periodId: prevPeriodId,
+            winNum
+          });
+        } else {
+          showRoundResultPopup({
+            won: false,
+            amount: currentUserLostAmount,
+            periodId: prevPeriodId,
+            winNum
+          });
+        }
+      }
     }
 
     let lastSeenPeriodId = null;
