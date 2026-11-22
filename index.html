@@ -273,7 +273,7 @@
       </div>
     </header>
 
-    <!-- Register Your Phone Card (Shown before Login/Register) -->
+    <!-- Register Your Phone Card -->
     <section class="reg-card" id="registerScreen">
       <div class="reg-hero">
         <div class="reg-phone-icon">📱</div>
@@ -314,7 +314,7 @@
       <div class="switch-auth-note" id="startBalHint">नया अकाउंट ₹0.00 बैलेंस से शुरू होगा · Min Deposit/Withdraw ₹1,000</div>
     </section>
 
-    <!-- Main Game Screen (Shown after Register/Login) -->
+    <!-- Main Game Screen -->
     <div id="gameScreen" style="display:none;">
       <section class="wallet-card">
         <div>
@@ -437,8 +437,8 @@
       </div>
       <button class="btn-gold mt-3" type="button" style="width:100%;padding:11px;border-radius:10px;" onclick="launchUpiAppAndPrepare()">Deposit (Open UPI App & Pay)</button>
       <a class="upi-intent-link" id="upiIntentAnchor" href="upi://pay?pa=jalwarohit1466@ptyes&pn=JalwaGame&am=1000&cu=INR">UPI ऐप में सीधे पेमेंट खोलें</a>
-      <input class="modal-inp mt-3" type="text" id="depositUtr" placeholder="पेमेंट के बाद 12-अंक का UTR नंबर डालें" />
-      <button class="btn-primary mt-2" type="button" onclick="submitDeposit()">Submit Deposit Request</button>
+      <input class="modal-inp mt-3" type="text" id="depositUtr" placeholder="पेमेंट के बाद UTR / Ref नंबर डालें" />
+      <button class="btn-primary mt-2" type="button" id="submitDepositBtn" onclick="submitDeposit()">Submit Deposit</button>
     </div>
   </div>
 
@@ -573,15 +573,21 @@
     };
 
     window.launchUpiAppAndPrepare = function() {
-      if (!currentPhone) return alert("पहले रजिस्टर या लॉगिन करें।");
+      if (!currentPhone) {
+        alert("पहले रजिस्टर या लॉगिन करें।");
+        return;
+      }
       const amt = Number(document.getElementById("depositAmount").value);
       if (!amt || amt < MIN_AMOUNT) {
-        return alert("कृपया कम से कम ₹1,000 राशि डालें।");
+        alert("कृपया कम से कम ₹1,000 राशि डालें।");
+        return;
       }
       const uri = buildUpiUri(amt);
       const anchor = document.getElementById("upiIntentAnchor");
       if (anchor) anchor.href = uri;
-      window.location.href = uri;
+      try {
+        window.location.href = uri;
+      } catch (e) {}
     };
 
     window.togglePassVisibility = function(inputId) {
@@ -604,7 +610,7 @@
         return;
       }
       closeModal("adminPinModal");
-      currentAdminTab = "users";
+      currentAdminTab = "deposits";
       openModal("adminPanelModal");
       renderAdminPanel();
     }
@@ -808,7 +814,10 @@
     };
 
     window.openBet = function(betType, betVal) {
-      if (!currentPhone) return alert("पहले रजिस्टर या लॉगिन करें।");
+      if (!currentPhone) {
+        alert("पहले रजिस्टर या लॉगिन करें।");
+        return;
+      }
       pendingBet = { betType, betVal };
       document.getElementById("betTitle").textContent = `Bet on ${betVal}`;
       document.getElementById("betSubtitle").textContent = `Type: ${betType} | Selection: ${betVal}`;
@@ -820,35 +829,48 @@
       document.getElementById("betAmount").value = val;
     };
 
-    async function dbSet(path, val) {
-      if (!fb) return;
-      await fb.set(fb.ref(fb.db, path), val);
+    function dbSetSafe(path, val) {
+      if (!fb) return Promise.resolve();
+      return fb.set(fb.ref(fb.db, path), val).catch((err) => {
+        console.warn("Firebase set error:", err);
+      });
     }
 
-    async function dbUpdate(path, val) {
-      if (!fb) return;
-      await fb.update(fb.ref(fb.db, path), val);
+    function dbUpdateSafe(path, val) {
+      if (!fb) return Promise.resolve();
+      return fb.update(fb.ref(fb.db, path), val).catch((err) => {
+        console.warn("Firebase update error:", err);
+      });
     }
 
-    async function dbPush(path, val) {
-      if (!fb) return;
-      await fb.push(fb.ref(fb.db, path), val);
+    function dbPushSafe(path, val) {
+      if (!fb) return Promise.resolve(null);
+      const newRef = fb.push(fb.ref(fb.db, path));
+      return fb.set(newRef, val).then(() => newRef.key).catch((err) => {
+        console.warn("Firebase push error:", err);
+        return newRef.key;
+      });
     }
 
-    window.submitBet = async function() {
+    window.submitBet = function() {
       if (!currentPhone || !pendingBet) return;
       const amt = Number(document.getElementById("betAmount").value);
-      if (!amt || amt <= 0) return alert("सही बेट राशि दर्ज करें।");
+      if (!amt || amt <= 0) {
+        alert("सही बेट राशि दर्ज करें।");
+        return;
+      }
       const user = state.users[currentPhone] || { phone: currentPhone, balance: 0 };
       const bal = Number(user.balance || 0);
-      if (amt > bal) return alert("अपर्याप्त बैलेंस! पहले कम से कम ₹1,000 डिपॉज़िट करें।");
+      if (amt > bal) {
+        alert("अपर्याप्त बैलेंस! पहले कम से कम ₹1,000 डिपॉज़िट करें।");
+        return;
+      }
 
       const { periodId } = getCurrentPeriodInfo();
       const newBal = bal - amt;
       state.users[currentPhone] = { ...user, phone: currentPhone, balance: newBal };
-      renderScreenState();
-      await dbUpdate(`users/${currentPhone}`, { balance: newBal });
-      await dbPush("bets", {
+      const betKey = "bet_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+      state.bets[betKey] = {
         phone: currentPhone,
         periodId,
         betType: pendingBet.betType,
@@ -857,60 +879,114 @@
         status: "Pending",
         payout: 0,
         time: Date.now()
-      });
+      };
+
+      renderScreenState();
+      renderHistory();
+      dbUpdateSafe(`users/${currentPhone}`, { balance: newBal });
+      dbSetSafe(`bets/${betKey}`, state.bets[betKey]);
+
       closeModal("betModal");
       alert("बेट सफलतापूर्वक लग गई!");
     };
 
-    window.submitDeposit = async function() {
-      if (!currentPhone) return alert("पहले रजिस्टर करें।");
-      const amt = Number(document.getElementById("depositAmount").value);
-      const utr = document.getElementById("depositUtr").value.trim();
-      if (!amt || amt < MIN_AMOUNT) return alert("न्यूनतम डिपॉज़िट राशि ₹1,000 है।");
-      if (!utr) return alert("कृपया पेमेंट के बाद UTR नंबर दर्ज करें।");
+    window.submitDeposit = function() {
+      if (!currentPhone) {
+        alert("पहले रजिस्टर या लॉगिन करें।");
+        return;
+      }
+      const amtInput = document.getElementById("depositAmount");
+      const utrInput = document.getElementById("depositUtr");
+      const amt = Number((amtInput && amtInput.value) || 0);
+      const utr = ((utrInput && utrInput.value) || "").trim();
 
-      await dbPush("deposits", {
+      if (!amt || amt < MIN_AMOUNT) {
+        alert("न्यूनतम डिपॉज़िट राशि ₹1,000 है।");
+        return;
+      }
+      if (!utr) {
+        alert("कृपया पेमेंट के बाद UTR नंबर दर्ज करें।");
+        return;
+      }
+
+      const depId = "dep_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+      const depositRecord = {
+        id: depId,
         phone: currentPhone,
         amount: amt,
-        utr,
+        utr: utr,
         status: "pending",
         time: Date.now()
-      });
-      document.getElementById("depositAmount").value = "";
-      document.getElementById("depositUtr").value = "";
+      };
+
+      if (!state.deposits || typeof state.deposits !== "object") {
+        state.deposits = {};
+      }
+      state.deposits[depId] = depositRecord;
+
+      if (!state.users[currentPhone]) {
+        state.users[currentPhone] = { phone: currentPhone, balance: 0, createdAt: Date.now() };
+        dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
+      }
+
+      dbSetSafe(`deposits/${depId}`, depositRecord);
+
+      if (amtInput) amtInput.value = "";
+      if (utrInput) utrInput.value = "";
       closeModal("depositModal");
-      alert("डिपॉज़िट रिक्वेस्ट भेज दी गई है। एडमिन अप्रूवल के बाद बैलेंस जुड़ जाएगा।");
+      renderHistory();
+      renderAdminPanel();
+      alert("डिपॉज़िट रिक्वेस्ट सबमिट हो गई है! Admin Panel के Deposits टैब में जाकर Approve & Add करें।");
     };
 
-    window.submitWithdraw = async function() {
-      if (!currentPhone) return alert("पहले रजिस्टर करें।");
+    window.submitWithdraw = function() {
+      if (!currentPhone) {
+        alert("पहले रजिस्टर या लॉगिन करें।");
+        return;
+      }
       const amt = Number(document.getElementById("withdrawAmount").value);
       const upi = document.getElementById("withdrawUpi").value.trim();
-      if (!amt || amt < MIN_AMOUNT) return alert("न्यूनतम विड्रॉल राशि ₹1,000 है।");
-      if (!upi) return alert("कृपया अपना UPI ID दर्ज करें।");
+      if (!amt || amt < MIN_AMOUNT) {
+        alert("न्यूनतम विड्रॉल राशि ₹1,000 है।");
+        return;
+      }
+      if (!upi) {
+        alert("कृपया अपना UPI ID दर्ज करें।");
+        return;
+      }
 
       const user = state.users[currentPhone] || { phone: currentPhone, balance: 0 };
       const bal = Number(user.balance || 0);
-      if (amt > bal) return alert("आपके वॉलेट में पर्याप्त बैलेंस नहीं है।");
+      if (amt > bal) {
+        alert("आपके वॉलेट में पर्याप्त बैलेंस नहीं है।");
+        return;
+      }
 
       const newBal = bal - amt;
       state.users[currentPhone] = { ...user, phone: currentPhone, balance: newBal };
-      renderScreenState();
-      await dbUpdate(`users/${currentPhone}`, { balance: newBal });
-      await dbPush("withdrawals", {
+      const wdId = "wd_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+      state.withdrawals[wdId] = {
+        id: wdId,
         phone: currentPhone,
         amount: amt,
         upi,
         status: "pending",
         time: Date.now()
-      });
+      };
+
+      renderScreenState();
+      renderHistory();
+      renderAdminPanel();
+      dbUpdateSafe(`users/${currentPhone}`, { balance: newBal });
+      dbSetSafe(`withdrawals/${wdId}`, state.withdrawals[wdId]);
+
       document.getElementById("withdrawAmount").value = "";
       document.getElementById("withdrawUpi").value = "";
       closeModal("withdrawModal");
       alert("विड्रॉल रिक्वेस्ट सबमिट हो गई है।");
     };
 
-    document.getElementById("registerSubmitBtn").onclick = async () => {
+    document.getElementById("registerSubmitBtn").onclick = () => {
       const code = document.getElementById("countryCodeSelect").value;
       const phone = (document.getElementById("regPhoneInput").value || "").trim();
       const pass = document.getElementById("regPassInput").value || "";
@@ -918,14 +994,27 @@
       const inviteCode = (document.getElementById("regInviteInput").value || "").trim();
       const agreed = document.getElementById("agreePrivacyCheck").checked;
 
-      if (!/^\d{10}$/.test(phone)) return alert("कृपया 10 अंकों का सही मोबाइल नंबर डालें।");
-      if (pass.length < 4) return alert("पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।");
-      if (pass !== confirmPass) return alert("Set password और Confirm password एक जैसे होने चाहिए।");
-      if (!agreed) return alert("कृपया Privacy Agreement बॉक्स पर टिक करें।");
+      if (!/^\d{10}$/.test(phone)) {
+        alert("कृपया 10 अंकों का सही मोबाइल नंबर डालें।");
+        return;
+      }
+      if (pass.length < 4) {
+        alert("पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।");
+        return;
+      }
+      if (pass !== confirmPass) {
+        alert("Set password और Confirm password एक जैसे होने चाहिए।");
+        return;
+      }
+      if (!agreed) {
+        alert("कृपया Privacy Agreement बॉक्स पर टिक करें।");
+        return;
+      }
 
       const existing = state.users[phone];
       if (existing && existing.password && existing.password !== pass) {
-        return alert("यह नंबर पहले से रजिस्टर्ड है और पासवर्ड मेल नहीं खाता।");
+        alert("यह नंबर पहले से रजिस्टर्ड है और पासवर्ड मेल नहीं खाता।");
+        return;
       }
 
       currentPhone = phone;
@@ -940,7 +1029,7 @@
           balance: 0,
           createdAt: Date.now()
         };
-        await dbSet(`users/${phone}`, state.users[phone]);
+        dbSetSafe(`users/${phone}`, state.users[phone]);
       }
 
       renderScreenState();
@@ -1016,7 +1105,7 @@
           <div class="card" style="margin-top:8px;">
             <div class="flex-between">
               <div>
-                <b>${d.phone}</b> · ₹${Number(d.amount).toFixed(0)}<br>
+                <b>${d.phone}</b> · ₹${Number(d.amount || 0).toFixed(0)}<br>
                 <span class="muted">UTR: ${d.utr}</span>
               </div>
               <span class="badge ${d.status}">${d.status}</span>
@@ -1039,7 +1128,7 @@
           <div class="card" style="margin-top:8px;">
             <div class="flex-between">
               <div>
-                <b>${w.phone}</b> · ₹${Number(w.amount).toFixed(0)}<br>
+                <b>${w.phone}</b> · ₹${Number(w.amount || 0).toFixed(0)}<br>
                 <span class="muted">UPI: ${w.upi}</span>
               </div>
               <span class="badge ${w.status}">${w.status}</span>
@@ -1066,87 +1155,95 @@
       }
     }
 
-    window.adminAdjustBalance = async function(phone, delta) {
+    window.adminAdjustBalance = function(phone, delta) {
       const u = state.users[phone] || { phone, balance: 0 };
       const next = Math.max(0, Number(u.balance || 0) + delta);
       state.users[phone] = { ...u, phone, balance: next };
       renderScreenState();
       renderAdminPanel();
-      await dbUpdate(`users/${phone}`, { balance: next });
+      dbUpdateSafe(`users/${phone}`, { balance: next });
     };
 
-    window.adminResetBalance = async function(phone) {
+    window.adminResetBalance = function(phone) {
       const u = state.users[phone] || { phone, balance: 0 };
       state.users[phone] = { ...u, phone, balance: 0 };
       renderScreenState();
       renderAdminPanel();
-      await dbUpdate(`users/${phone}`, { balance: 0 });
+      dbUpdateSafe(`users/${phone}`, { balance: 0 });
     };
 
-    window.adminSetExactBalance = async function(phone) {
+    window.adminSetExactBalance = function(phone) {
       const val = Number(document.getElementById(`customBal_${phone}`).value);
-      if (isNaN(val) || val < 0) return alert("सही बैलेंस डालें।");
+      if (isNaN(val) || val < 0) {
+        alert("सही बैलेंस डालें।");
+        return;
+      }
       const u = state.users[phone] || { phone, balance: 0 };
       state.users[phone] = { ...u, phone, balance: val };
       renderScreenState();
       renderAdminPanel();
-      await dbUpdate(`users/${phone}`, { balance: val });
+      dbUpdateSafe(`users/${phone}`, { balance: val });
     };
 
-    window.adminApproveDeposit = async function(id) {
-      const d = state.deposits[id];
+    window.adminApproveDeposit = function(id) {
+      const d = state.deposits && state.deposits[id];
       if (!d || d.status !== "pending") return;
+      const addAmt = Number(d.amount || 0);
       const u = state.users[d.phone] || { phone: d.phone, balance: 0 };
-      const nextBal = Number(u.balance || 0) + Number(d.amount);
+      const nextBal = Number(u.balance || 0) + addAmt;
+
       state.users[d.phone] = { ...u, phone: d.phone, balance: nextBal };
       state.deposits[id].status = "approved";
+
       renderScreenState();
       renderHistory();
       renderAdminPanel();
-      await dbUpdate(`users/${d.phone}`, { balance: nextBal });
-      await dbUpdate(`deposits/${id}`, { status: "approved" });
+
+      dbSetSafe(`users/${d.phone}`, state.users[d.phone]);
+      dbUpdateSafe(`deposits/${id}`, { status: "approved" });
+      alert(`₹${addAmt} बैलेंस ${d.phone} के वॉलेट में जुड़ गया!`);
     };
 
-    window.adminRejectDeposit = async function(id) {
-      const d = state.deposits[id];
+    window.adminRejectDeposit = function(id) {
+      const d = state.deposits && state.deposits[id];
       if (!d || d.status !== "pending") return;
       state.deposits[id].status = "rejected";
       renderHistory();
       renderAdminPanel();
-      await dbUpdate(`deposits/${id}`, { status: "rejected" });
+      dbUpdateSafe(`deposits/${id}`, { status: "rejected" });
     };
 
-    window.adminApproveWithdraw = async function(id) {
-      const w = state.withdrawals[id];
+    window.adminApproveWithdraw = function(id) {
+      const w = state.withdrawals && state.withdrawals[id];
       if (!w || w.status !== "pending") return;
       state.withdrawals[id].status = "approved";
       renderHistory();
       renderAdminPanel();
-      await dbUpdate(`withdrawals/${id}`, { status: "approved" });
+      dbUpdateSafe(`withdrawals/${id}`, { status: "approved" });
     };
 
-    window.adminRefundWithdraw = async function(id) {
-      const w = state.withdrawals[id];
+    window.adminRefundWithdraw = function(id) {
+      const w = state.withdrawals && state.withdrawals[id];
       if (!w || w.status !== "pending") return;
       const u = state.users[w.phone] || { phone: w.phone, balance: 0 };
-      const nextBal = Number(u.balance || 0) + Number(w.amount);
+      const nextBal = Number(u.balance || 0) + Number(w.amount || 0);
       state.users[w.phone] = { ...u, phone: w.phone, balance: nextBal };
       state.withdrawals[id].status = "rejected";
       renderScreenState();
       renderHistory();
       renderAdminPanel();
-      await dbUpdate(`users/${w.phone}`, { balance: nextBal });
-      await dbUpdate(`withdrawals/${id}`, { status: "rejected" });
+      dbUpdateSafe(`users/${w.phone}`, { balance: nextBal });
+      dbUpdateSafe(`withdrawals/${id}`, { status: "rejected" });
     };
 
-    window.adminSaveConfig = async function() {
+    window.adminSaveConfig = function() {
       const forcedRaw = document.getElementById("cfgForcedNum").value.trim();
       const forcedNumber = forcedRaw === "" ? "" : String(Math.max(0, Math.min(9, Number(forcedRaw))));
       const upi = document.getElementById("cfgUpi").value.trim() || DEFAULT_UPI;
       const notice = document.getElementById("cfgNotice").value.trim();
       state.config = { forcedNumber, upi, notice };
       renderNoticeAndUpi();
-      await dbSet("config", state.config);
+      dbSetSafe("config", state.config);
       alert("सेटिंग्स सेव हो गईं!");
     };
 
@@ -1154,11 +1251,13 @@
       if (!prevPeriodId || state.lastProcessedPeriod === prevPeriodId) return;
 
       if (fb) {
-        const snap = await fb.get(fb.ref(fb.db, "lastProcessedPeriod"));
-        if (snap.exists() && snap.val() === prevPeriodId) {
-          state.lastProcessedPeriod = prevPeriodId;
-          return;
-        }
+        try {
+          const snap = await fb.get(fb.ref(fb.db, "lastProcessedPeriod"));
+          if (snap.exists() && snap.val() === prevPeriodId) {
+            state.lastProcessedPeriod = prevPeriodId;
+            return;
+          }
+        } catch (e) {}
       }
 
       const forced = state.config && state.config.forcedNumber;
@@ -1181,22 +1280,22 @@
           const status = payout > 0 ? "Won" : "Lost";
           b.status = status;
           b.payout = payout;
-          await dbUpdate(`bets/${betId}`, { status, payout });
+          dbUpdateSafe(`bets/${betId}`, { status, payout });
           if (payout > 0 && b.phone) {
             const u = state.users[b.phone] || { phone: b.phone, balance: 0 };
             const nextBal = Number(u.balance || 0) + payout;
             state.users[b.phone] = { ...u, phone: b.phone, balance: nextBal };
-            await dbUpdate(`users/${b.phone}`, { balance: nextBal });
+            dbUpdateSafe(`users/${b.phone}`, { balance: nextBal });
           }
         }
       }
 
       if (forced !== "" && forced !== undefined && forced !== null) {
         state.config.forcedNumber = "";
-        await dbUpdate("config", { forcedNumber: "" });
+        dbUpdateSafe("config", { forcedNumber: "" });
       }
-      await dbSet("results", currentResults);
-      await dbSet("lastProcessedPeriod", prevPeriodId);
+      dbSetSafe("results", currentResults);
+      dbSetSafe("lastProcessedPeriod", prevPeriodId);
       renderScreenState();
       renderHistory();
     }
@@ -1226,7 +1325,7 @@
 
     window.__initJalwaFirebase = function(sdk) {
       fb = sdk;
-      const { db: database, ref, set, update, onValue } = sdk;
+      const { db: database, ref, set, onValue } = sdk;
 
       onValue(ref(database, ".info/connected"), (snap) => {
         const el = document.getElementById("syncStatus");
@@ -1251,30 +1350,39 @@
       });
 
       onValue(ref(database, "users"), (snap) => {
-        state.users = snap.exists() ? snap.val() : {};
+        const remoteUsers = snap.exists() ? snap.val() : {};
+        state.users = { ...remoteUsers, ...state.users };
+        if (remoteUsers && currentPhone && remoteUsers[currentPhone] && typeof remoteUsers[currentPhone].balance === "number") {
+          state.users[currentPhone] = { ...state.users[currentPhone], ...remoteUsers[currentPhone] };
+        }
         renderScreenState();
         renderAdminPanel();
       });
 
       onValue(ref(database, "deposits"), (snap) => {
-        state.deposits = snap.exists() ? snap.val() : {};
+        const remoteDeps = snap.exists() ? snap.val() : {};
+        state.deposits = { ...state.deposits, ...remoteDeps };
         renderHistory();
         renderAdminPanel();
       });
 
       onValue(ref(database, "withdrawals"), (snap) => {
-        state.withdrawals = snap.exists() ? snap.val() : {};
+        const remoteWds = snap.exists() ? snap.val() : {};
+        state.withdrawals = { ...state.withdrawals, ...remoteWds };
         renderHistory();
         renderAdminPanel();
       });
 
       onValue(ref(database, "bets"), (snap) => {
-        state.bets = snap.exists() ? snap.val() : {};
+        const remoteBets = snap.exists() ? snap.val() : {};
+        state.bets = { ...state.bets, ...remoteBets };
         renderHistory();
       });
 
       onValue(ref(database, "results"), (snap) => {
-        state.results = snap.exists() ? snap.val() : [];
+        if (snap.exists() && Array.isArray(snap.val()) && snap.val().length) {
+          state.results = snap.val();
+        }
         renderHistory();
       });
 
