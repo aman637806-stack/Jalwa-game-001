@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8" />
@@ -23,7 +23,6 @@
     body { margin: 0; background: var(--bg); color: var(--text); padding-bottom: 56px; }
     .container { max-width: 480px; margin: 0 auto; padding: 10px 12px; }
 
-    /* Top Header matching screenshot */
     .topbar {
       display: flex; align-items: center; justify-content: space-between;
       background: #0b1021; padding: 10px 12px; border-radius: 14px;
@@ -48,13 +47,24 @@
       padding: 4px 9px; font-size: 11px; font-weight: 700; cursor: pointer;
     }
 
-    /* Register Your Phone Card matching screenshot */
     .reg-card {
       background: linear-gradient(180deg, #111930, #0d1324);
       border: 1px solid var(--border); border-radius: 18px;
       padding: 18px 16px; margin-top: 10px;
     }
-    .reg-hero { text-align: center; margin-bottom: 16px; }
+    .auth-mode-switch {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      background: #0a0f1e; padding: 5px; border-radius: 999px;
+      border: 1px solid var(--border); margin-bottom: 14px;
+    }
+    .auth-mode-btn {
+      border: none; border-radius: 999px; padding: 9px 12px;
+      font-size: 14px; font-weight: 800; background: transparent; color: var(--muted);
+    }
+    .auth-mode-btn.active {
+      background: linear-gradient(90deg, #16b87e, #19c99b); color: #ffffff;
+    }
+    .reg-hero { text-align: center; margin-bottom: 14px; }
     .reg-phone-icon { font-size: 28px; color: #19c37d; line-height: 1; }
     .reg-heading {
       display: inline-block; font-size: 18px; font-weight: 800; color: #ffffff;
@@ -95,8 +105,10 @@
     .switch-auth-note {
       text-align: center; margin-top: 12px; font-size: 12px; color: var(--muted);
     }
+    .switch-auth-link {
+      color: #34d399; font-weight: 700; cursor: pointer; text-decoration: underline;
+    }
 
-    /* Wallet Card */
     .wallet-card {
       background: linear-gradient(145deg, #161f3a, #10172c);
       border: 1px solid var(--border); border-radius: 16px;
@@ -115,24 +127,18 @@
       padding: 11px 14px; font-size: 15px; font-weight: 700; cursor: pointer;
     }
 
-    /* Notice / Broadcast Bar */
     .notice-bar {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
       background: #141c33; border: 1px solid var(--border); border-radius: 12px;
       padding: 8px 10px; margin-top: 10px; font-size: 12px; color: #e2e8f0;
     }
-    .notice-text {
-      flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
+    .notice-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .detail-pill {
       background: #17c985; color: #072217; border: none; border-radius: 999px;
       padding: 5px 12px; font-size: 12px; font-weight: 800; cursor: pointer; flex-shrink: 0;
     }
 
-    /* WinGo Mode Tabs */
-    .mode-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px;
-    }
+    .mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
     .mode-card {
       background: #131b31; border: 1px solid var(--border); border-radius: 12px;
       padding: 10px 6px; text-align: center; cursor: pointer; color: var(--muted);
@@ -144,7 +150,6 @@
     }
     .mode-icon { font-size: 20px; display: block; margin-bottom: 4px; }
 
-    /* Green Timer & How-to-Play Banner */
     .timer-banner {
       display: grid; grid-template-columns: 1.15fr 1fr; gap: 8px;
       background: linear-gradient(135deg, #18c984, #10a86d);
@@ -178,7 +183,6 @@
     .digit-colon { font-weight: 900; font-size: 18px; display: inline-flex; align-items: center; }
     .period-code { font-size: 12px; font-weight: 700; margin-top: 7px; letter-spacing: 0.3px; }
 
-    /* Betting Board (Colors + 0-9 Balls) */
     .bet-board {
       background: #12182b; border: 1px solid var(--border); border-radius: 16px;
       padding: 12px; margin-top: 10px;
@@ -207,7 +211,6 @@
     .ball-0 { background: linear-gradient(90deg, #dc2626 50%, #7c3aed 50%); }
     .ball-5 { background: linear-gradient(90deg, #7c3aed 50%, #16a34a 50%); }
 
-    /* History / Modals */
     .card {
       background: var(--card); border: 1px solid var(--border); border-radius: 14px;
       padding: 14px; margin-top: 10px;
@@ -260,7 +263,6 @@
 </head>
 <body>
   <div class="container">
-    <!-- Top Bar -->
     <header class="topbar">
       <div class="top-left">
         <span class="back-arrow" id="backBtn" title="Back / Logout">‹</span>
@@ -273,8 +275,12 @@
       </div>
     </header>
 
-    <!-- Register Your Phone Card -->
     <section class="reg-card" id="registerScreen">
+      <div class="auth-mode-switch">
+        <button class="auth-mode-btn active" type="button" id="modeRegisterBtn" onclick="setAuthMode('register')">Register</button>
+        <button class="auth-mode-btn" type="button" id="modeLoginBtn" onclick="setAuthMode('login')">Login</button>
+      </div>
+
       <div class="reg-hero">
         <div class="reg-phone-icon">📱</div>
         <div class="reg-heading" id="regHeadingText">Register your phone</div>
@@ -292,29 +298,33 @@
 
       <div class="field-label">🔒 <span id="lblSetPass">Set password</span></div>
       <div class="pw-wrap">
-        <input class="dark-input" type="password" id="regPassInput" placeholder="Set password" />
+        <input class="dark-input" type="password" id="regPassInput" placeholder="Enter password" />
         <button class="eye-btn" type="button" onclick="togglePassVisibility('regPassInput')">👁</button>
       </div>
 
-      <div class="field-label">🔒 <span id="lblConfirmPass">Confirm password</span></div>
-      <div class="pw-wrap">
-        <input class="dark-input" type="password" id="regConfirmPassInput" placeholder="Confirm password" />
-        <button class="eye-btn" type="button" onclick="togglePassVisibility('regConfirmPassInput')">👁</button>
+      <div id="registerOnlyFields">
+        <div class="field-label">🔒 <span id="lblConfirmPass">Confirm password</span></div>
+        <div class="pw-wrap">
+          <input class="dark-input" type="password" id="regConfirmPassInput" placeholder="Confirm password" />
+          <button class="eye-btn" type="button" onclick="togglePassVisibility('regConfirmPassInput')">👁</button>
+        </div>
+
+        <div class="field-label">👥 <span id="lblInviteCode">Invite code</span></div>
+        <input class="dark-input" type="text" id="regInviteInput" value="568619351954" placeholder="Invite code" />
+
+        <label class="agree-row">
+          <input type="checkbox" id="agreePrivacyCheck" checked />
+          <span id="agreeText">I have read and agree <a href="#" class="privacy-link" onclick="event.preventDefault();openModal('detailModal');">【Privacy Agreement】</a></span>
+        </label>
       </div>
 
-      <div class="field-label">👥 <span id="lblInviteCode">Invite code</span></div>
-      <input class="dark-input" type="text" id="regInviteInput" value="568619351954" placeholder="Invite code" />
-
-      <label class="agree-row">
-        <input type="checkbox" id="agreePrivacyCheck" checked />
-        <span id="agreeText">I have read and agree <a href="#" class="privacy-link" onclick="event.preventDefault();openModal('detailModal');">【Privacy Agreement】</a></span>
-      </label>
-
       <button class="btn-register" type="button" id="registerSubmitBtn">Register</button>
+      <div class="switch-auth-note" id="switchAuthPrompt">
+        पहले से आईडी बनी है? <span class="switch-auth-link" onclick="setAuthMode('login')">Login करें</span> · एक नंबर से एक ही आईडी बनेगी
+      </div>
       <div class="switch-auth-note" id="startBalHint">नया अकाउंट ₹0.00 बैलेंस से शुरू होगा · Min Deposit/Withdraw ₹1,000</div>
     </section>
 
-    <!-- Main Game Screen -->
     <div id="gameScreen" style="display:none;">
       <section class="wallet-card">
         <div>
@@ -391,6 +401,7 @@
           <span class="muted" id="syncStatus">Firebase: Connecting...</span>
           <span class="muted" id="logoutAction" style="cursor:pointer;color:#93c5fd;">Logout</span>
         </div>
+        <div class="muted mt-2" id="balSourceInfo" style="color:#6ee7b7;">Balance Lock: Active</div>
       </section>
 
       <div class="tabs">
@@ -421,7 +432,7 @@
     </div>
   </div>
 
-  <!-- Deposit Modal (Direct UPI App Launch + UTR Submit) -->
+  <!-- Deposit Modal -->
   <div class="modal-bg" id="depositModal">
     <div class="modal">
       <div class="flex-between">
@@ -456,7 +467,7 @@
     </div>
   </div>
 
-  <!-- Detail / Notice Modal -->
+  <!-- Detail Modal -->
   <div class="modal-bg" id="detailModal">
     <div class="modal">
       <div class="flex-between">
@@ -514,8 +525,29 @@
     const ADMIN_PIN = "9999";
     const MIN_AMOUNT = 1000;
     const DEFAULT_UPI = "jalwarohit1466@ptyes";
+    const STATE_KEY = "jalwa_game_state_v3";
+    const MASTER_BAL_KEY = "jalwa_master_balances_v3";
+    const REGISTERED_NUMBERS_KEY = "jalwa_registered_numbers_v3";
 
+    function readStore(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    function writeStore(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {}
+    }
+
+    let masterBalances = readStore(MASTER_BAL_KEY, {});
+    let registeredNumbers = readStore(REGISTERED_NUMBERS_KEY, {});
     let currentPhone = localStorage.getItem("jalwa_phone") || "";
+    let authMode = "register";
     let currentHistoryTab = "results";
     let currentAdminTab = "users";
     let roundSeconds = 30;
@@ -525,19 +557,123 @@
     let fb = null;
     let isHindi = false;
 
+    const savedState = readStore(STATE_KEY, null);
     let state = {
-      config: {
+      config: (savedState && savedState.config) || {
         upi: DEFAULT_UPI,
         notice: `${DEFAULT_UPI}. Our customer service will never ask for OTP or PIN. Min ₹1,000.`,
         forcedNumber: ""
       },
-      users: {},
-      deposits: {},
-      withdrawals: {},
-      bets: {},
-      results: [],
-      lastProcessedPeriod: ""
+      users: (savedState && savedState.users) || {},
+      deposits: (savedState && savedState.deposits) || {},
+      withdrawals: (savedState && savedState.withdrawals) || {},
+      bets: (savedState && savedState.bets) || {},
+      results: (savedState && savedState.results) || [],
+      lastProcessedPeriod: (savedState && savedState.lastProcessedPeriod) || ""
     };
+
+    Object.keys(state.users || {}).forEach((ph) => {
+      if (state.users[ph]) registeredNumbers[ph] = true;
+    });
+
+    function persistAll() {
+      writeStore(STATE_KEY, state);
+      writeStore(MASTER_BAL_KEY, masterBalances);
+      writeStore(REGISTERED_NUMBERS_KEY, registeredNumbers);
+    }
+
+    function isNumberAlreadyRegistered(phone) {
+      return Boolean(registeredNumbers[phone] || (state.users && state.users[phone]));
+    }
+
+    window.setAuthMode = function(mode) {
+      authMode = mode === "login" ? "login" : "register";
+      const regBtn = document.getElementById("modeRegisterBtn");
+      const logBtn = document.getElementById("modeLoginBtn");
+      const regOnly = document.getElementById("registerOnlyFields");
+      const heading = document.getElementById("regHeadingText");
+      const passLbl = document.getElementById("lblSetPass");
+      const submitBtn = document.getElementById("registerSubmitBtn");
+      const promptEl = document.getElementById("switchAuthPrompt");
+
+      if (regBtn) regBtn.classList.toggle("active", authMode === "register");
+      if (logBtn) logBtn.classList.toggle("active", authMode === "login");
+      if (regOnly) regOnly.style.display = authMode === "register" ? "block" : "none";
+
+      if (authMode === "login") {
+        if (heading) heading.textContent = isHindi ? "अपने अकाउंट में लॉगिन करें" : "Login to your account";
+        if (passLbl) passLbl.textContent = isHindi ? "पासवर्ड" : "Password";
+        if (submitBtn) submitBtn.textContent = isHindi ? "लॉगिन करें" : "Login";
+        if (promptEl) {
+          promptEl.innerHTML = `नई आईडी बनानी है? <span class="switch-auth-link" onclick="setAuthMode('register')">Register करें</span> · एक नंबर से एक ही आईडी बनेगी`;
+        }
+      } else {
+        if (heading) heading.textContent = isHindi ? "अपना फ़ोन रजिस्टर करें" : "Register your phone";
+        if (passLbl) passLbl.textContent = isHindi ? "पासवर्ड सेट करें" : "Set password";
+        if (submitBtn) submitBtn.textContent = isHindi ? "रजिस्टर करें" : "Register";
+        if (promptEl) {
+          promptEl.innerHTML = `पहले से आईडी बनी है? <span class="switch-auth-link" onclick="setAuthMode('login')">Login करें</span> · एक नंबर से एक ही आईडी बनेगी`;
+        }
+      }
+    };
+
+    function setAuthoritativeBalance(phone, balance) {
+      const cleanBal = Math.max(0, Number(balance || 0));
+      masterBalances[phone] = {
+        balance: cleanBal,
+        updatedAt: Date.now()
+      };
+      const existing = state.users[phone] || { phone, createdAt: Date.now() };
+      state.users[phone] = {
+        ...existing,
+        phone,
+        balance: cleanBal,
+        updatedAt: Date.now()
+      };
+      persistAll();
+    }
+
+    function clearAuthoritativeBalance(phone) {
+      delete masterBalances[phone];
+      const existing = state.users[phone] || { phone, createdAt: Date.now() };
+      state.users[phone] = {
+        ...existing,
+        phone,
+        balance: 0,
+        updatedAt: Date.now()
+      };
+      persistAll();
+    }
+
+    function mergeUsersWithMasterLock(remoteUsers) {
+      const merged = { ...(remoteUsers || {}) };
+      Object.keys(merged).forEach((ph) => {
+        registeredNumbers[ph] = true;
+      });
+      Object.keys(state.users || {}).forEach((ph) => {
+        registeredNumbers[ph] = true;
+        const locU = state.users[ph];
+        const remU = merged[ph];
+        if (!remU || Number(locU.updatedAt || 0) >= Number((remU && remU.updatedAt) || 0)) {
+          merged[ph] = locU;
+        }
+      });
+      Object.keys(masterBalances || {}).forEach((ph) => {
+        const mb = masterBalances[ph];
+        if (!mb) return;
+        const base = merged[ph] || { phone: ph, createdAt: Date.now() };
+        merged[ph] = {
+          ...base,
+          phone: ph,
+          balance: Number(mb.balance || 0),
+          updatedAt: Math.max(Number(base.updatedAt || 0), Number(mb.updatedAt || 0))
+        };
+      });
+      return merged;
+    }
+
+    state.users = mergeUsersWithMasterLock(state.users);
+    persistAll();
 
     function openModal(id) {
       const el = document.getElementById(id);
@@ -688,6 +824,7 @@
     function doLogout() {
       currentPhone = "";
       localStorage.removeItem("jalwa_phone");
+      setAuthMode("login");
       renderScreenState();
       renderHistory();
     }
@@ -698,6 +835,7 @@
       const uidBadge = document.getElementById("uidBadge");
       const balEl = document.getElementById("walletBalText");
       const phoneLbl = document.getElementById("activePhoneLabel");
+      const srcInfo = document.getElementById("balSourceInfo");
 
       if (!currentPhone) {
         regScreen.style.display = "block";
@@ -710,11 +848,19 @@
       gameScreen.style.display = "block";
       uidBadge.style.display = "inline-block";
 
+      state.users = mergeUsersWithMasterLock(state.users);
       const user = state.users[currentPhone] || { phone: currentPhone, balance: 0 };
       const bal = Number(user.balance || 0).toFixed(2);
       balEl.textContent = `₹${bal}`;
       phoneLbl.textContent = `(${currentPhone})`;
       uidBadge.textContent = `UID:${currentPhone.slice(-6)}`;
+
+      if (srcInfo) {
+        const isLocked = Boolean(masterBalances[currentPhone]);
+        srcInfo.textContent = isLocked
+          ? `Balance Lock: Active (₹${bal} saved)`
+          : `Balance Lock: Default (₹${bal})`;
+      }
     }
 
     function renderNoticeAndUpi() {
@@ -830,6 +976,7 @@
     };
 
     function dbSetSafe(path, val) {
+      persistAll();
       if (!fb) return Promise.resolve();
       return fb.set(fb.ref(fb.db, path), val).catch((err) => {
         console.warn("Firebase set error:", err);
@@ -837,18 +984,10 @@
     }
 
     function dbUpdateSafe(path, val) {
+      persistAll();
       if (!fb) return Promise.resolve();
       return fb.update(fb.ref(fb.db, path), val).catch((err) => {
         console.warn("Firebase update error:", err);
-      });
-    }
-
-    function dbPushSafe(path, val) {
-      if (!fb) return Promise.resolve(null);
-      const newRef = fb.push(fb.ref(fb.db, path));
-      return fb.set(newRef, val).then(() => newRef.key).catch((err) => {
-        console.warn("Firebase push error:", err);
-        return newRef.key;
       });
     }
 
@@ -868,7 +1007,8 @@
 
       const { periodId } = getCurrentPeriodInfo();
       const newBal = bal - amt;
-      state.users[currentPhone] = { ...user, phone: currentPhone, balance: newBal };
+      setAuthoritativeBalance(currentPhone, newBal);
+
       const betKey = "bet_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
       state.bets[betKey] = {
         phone: currentPhone,
@@ -883,7 +1023,7 @@
 
       renderScreenState();
       renderHistory();
-      dbUpdateSafe(`users/${currentPhone}`, { balance: newBal });
+      dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
       dbSetSafe(`bets/${betKey}`, state.bets[betKey]);
 
       closeModal("betModal");
@@ -925,10 +1065,11 @@
       state.deposits[depId] = depositRecord;
 
       if (!state.users[currentPhone]) {
-        state.users[currentPhone] = { phone: currentPhone, balance: 0, createdAt: Date.now() };
-        dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
+        state.users[currentPhone] = { phone: currentPhone, balance: 0, createdAt: Date.now(), updatedAt: Date.now() };
       }
 
+      persistAll();
+      dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
       dbSetSafe(`deposits/${depId}`, depositRecord);
 
       if (amtInput) amtInput.value = "";
@@ -963,7 +1104,8 @@
       }
 
       const newBal = bal - amt;
-      state.users[currentPhone] = { ...user, phone: currentPhone, balance: newBal };
+      setAuthoritativeBalance(currentPhone, newBal);
+
       const wdId = "wd_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
       state.withdrawals[wdId] = {
         id: wdId,
@@ -977,7 +1119,7 @@
       renderScreenState();
       renderHistory();
       renderAdminPanel();
-      dbUpdateSafe(`users/${currentPhone}`, { balance: newBal });
+      dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
       dbSetSafe(`withdrawals/${wdId}`, state.withdrawals[wdId]);
 
       document.getElementById("withdrawAmount").value = "";
@@ -986,7 +1128,7 @@
       alert("विड्रॉल रिक्वेस्ट सबमिट हो गई है।");
     };
 
-    document.getElementById("registerSubmitBtn").onclick = () => {
+    document.getElementById("registerSubmitBtn").onclick = async () => {
       const code = document.getElementById("countryCodeSelect").value;
       const phone = (document.getElementById("regPhoneInput").value || "").trim();
       const pass = document.getElementById("regPassInput").value || "";
@@ -1002,49 +1144,84 @@
         alert("पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।");
         return;
       }
-      if (pass !== confirmPass) {
-        alert("Set password और Confirm password एक जैसे होने चाहिए।");
-        return;
-      }
-      if (!agreed) {
-        alert("कृपया Privacy Agreement बॉक्स पर टिक करें।");
-        return;
+
+      if (fb) {
+        try {
+          const snap = await fb.get(fb.ref(fb.db, `users/${phone}`));
+          if (snap.exists() && snap.val()) {
+            const remUser = snap.val();
+            registeredNumbers[phone] = true;
+            state.users[phone] = {
+              ...(state.users[phone] || {}),
+              ...remUser,
+              phone
+            };
+            persistAll();
+          }
+        } catch (e) {}
       }
 
       const existing = state.users[phone];
-      if (existing && existing.password && existing.password !== pass) {
-        alert("यह नंबर पहले से रजिस्टर्ड है और पासवर्ड मेल नहीं खाता।");
-        return;
-      }
+      const alreadyExists = isNumberAlreadyRegistered(phone);
 
-      currentPhone = phone;
-      localStorage.setItem("jalwa_phone", phone);
+      if (authMode === "register") {
+        if (alreadyExists) {
+          alert("इस नंबर से पहले ही आईडी बनी हुई है! एक नंबर से दोबारा नई आईडी नहीं बन सकती। कृपया Login करें।");
+          setAuthMode("login");
+          return;
+        }
+        if (pass !== confirmPass) {
+          alert("Set password और Confirm password एक जैसे होने चाहिए।");
+          return;
+        }
+        if (!agreed) {
+          alert("कृपया Privacy Agreement बॉक्स पर टिक करें।");
+          return;
+        }
 
-      if (!existing) {
+        registeredNumbers[phone] = true;
+        currentPhone = phone;
+        localStorage.setItem("jalwa_phone", phone);
+
         state.users[phone] = {
           phone,
           countryCode: code,
           password: pass,
           inviteCode: inviteCode || "568619351954",
           balance: 0,
-          createdAt: Date.now()
+          createdAt: Date.now(),
+          updatedAt: Date.now()
         };
-        dbSetSafe(`users/${phone}`, state.users[phone]);
-      }
 
-      renderScreenState();
-      renderHistory();
+        persistAll();
+        dbSetSafe(`users/${phone}`, state.users[phone]);
+        renderScreenState();
+        renderHistory();
+      } else {
+        if (!existing) {
+          alert("इस नंबर से कोई आईडी नहीं मिली। पहले Register करें।");
+          return;
+        }
+        if (existing.password && existing.password !== pass) {
+          alert("गलत पासवर्ड! सही पासवर्ड डालें।");
+          return;
+        }
+
+        currentPhone = phone;
+        localStorage.setItem("jalwa_phone", phone);
+        persistAll();
+        renderScreenState();
+        renderHistory();
+      }
     };
 
     document.getElementById("langToggleBtn").onclick = () => {
       isHindi = !isHindi;
       document.getElementById("langToggleBtn").textContent = isHindi ? "🇮🇳 HI" : "🇺🇸 EN";
-      document.getElementById("regHeadingText").textContent = isHindi ? "अपना फ़ोन रजिस्टर करें" : "Register your phone";
       document.getElementById("lblPhone").textContent = isHindi ? "फ़ोन नंबर" : "Phone number";
-      document.getElementById("lblSetPass").textContent = isHindi ? "पासवर्ड सेट करें" : "Set password";
       document.getElementById("lblConfirmPass").textContent = isHindi ? "पासवर्ड कन्फ़र्म करें" : "Confirm password";
       document.getElementById("lblInviteCode").textContent = isHindi ? "इनवाइट कोड" : "Invite code";
-      document.getElementById("registerSubmitBtn").textContent = isHindi ? "रजिस्टर करें" : "Register";
+      setAuthMode(authMode);
     };
 
     document.getElementById("logoutAction").onclick = doLogout;
@@ -1054,7 +1231,6 @@
       else window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    // 5 Taps on Logo + Direct Admin Button
     document.getElementById("logoTap").onclick = () => {
       logoTaps += 1;
       clearTimeout(logoTapTimer);
@@ -1158,18 +1334,17 @@
     window.adminAdjustBalance = function(phone, delta) {
       const u = state.users[phone] || { phone, balance: 0 };
       const next = Math.max(0, Number(u.balance || 0) + delta);
-      state.users[phone] = { ...u, phone, balance: next };
+      setAuthoritativeBalance(phone, next);
       renderScreenState();
       renderAdminPanel();
-      dbUpdateSafe(`users/${phone}`, { balance: next });
+      dbSetSafe(`users/${phone}`, state.users[phone]);
     };
 
     window.adminResetBalance = function(phone) {
-      const u = state.users[phone] || { phone, balance: 0 };
-      state.users[phone] = { ...u, phone, balance: 0 };
+      clearAuthoritativeBalance(phone);
       renderScreenState();
       renderAdminPanel();
-      dbUpdateSafe(`users/${phone}`, { balance: 0 });
+      dbSetSafe(`users/${phone}`, state.users[phone]);
     };
 
     window.adminSetExactBalance = function(phone) {
@@ -1178,11 +1353,10 @@
         alert("सही बैलेंस डालें।");
         return;
       }
-      const u = state.users[phone] || { phone, balance: 0 };
-      state.users[phone] = { ...u, phone, balance: val };
+      setAuthoritativeBalance(phone, val);
       renderScreenState();
       renderAdminPanel();
-      dbUpdateSafe(`users/${phone}`, { balance: val });
+      dbSetSafe(`users/${phone}`, state.users[phone]);
     };
 
     window.adminApproveDeposit = function(id) {
@@ -1192,34 +1366,37 @@
       const u = state.users[d.phone] || { phone: d.phone, balance: 0 };
       const nextBal = Number(u.balance || 0) + addAmt;
 
-      state.users[d.phone] = { ...u, phone: d.phone, balance: nextBal };
-      state.deposits[id].status = "approved";
+      setAuthoritativeBalance(d.phone, nextBal);
+      state.deposits[id] = { ...d, status: "approved", approvedAt: Date.now() };
+      persistAll();
 
       renderScreenState();
       renderHistory();
       renderAdminPanel();
 
       dbSetSafe(`users/${d.phone}`, state.users[d.phone]);
-      dbUpdateSafe(`deposits/${id}`, { status: "approved" });
-      alert(`₹${addAmt} बैलेंस ${d.phone} के वॉलेट में जुड़ गया!`);
+      dbSetSafe(`deposits/${id}`, state.deposits[id]);
+      alert(`₹${addAmt} बैलेंस ${d.phone} के वॉलेट में जुड़ गया और लॉक हो गया!`);
     };
 
     window.adminRejectDeposit = function(id) {
       const d = state.deposits && state.deposits[id];
       if (!d || d.status !== "pending") return;
-      state.deposits[id].status = "rejected";
+      state.deposits[id] = { ...d, status: "rejected" };
+      persistAll();
       renderHistory();
       renderAdminPanel();
-      dbUpdateSafe(`deposits/${id}`, { status: "rejected" });
+      dbSetSafe(`deposits/${id}`, state.deposits[id]);
     };
 
     window.adminApproveWithdraw = function(id) {
       const w = state.withdrawals && state.withdrawals[id];
       if (!w || w.status !== "pending") return;
-      state.withdrawals[id].status = "approved";
+      state.withdrawals[id] = { ...w, status: "approved" };
+      persistAll();
       renderHistory();
       renderAdminPanel();
-      dbUpdateSafe(`withdrawals/${id}`, { status: "approved" });
+      dbSetSafe(`withdrawals/${id}`, state.withdrawals[id]);
     };
 
     window.adminRefundWithdraw = function(id) {
@@ -1227,13 +1404,14 @@
       if (!w || w.status !== "pending") return;
       const u = state.users[w.phone] || { phone: w.phone, balance: 0 };
       const nextBal = Number(u.balance || 0) + Number(w.amount || 0);
-      state.users[w.phone] = { ...u, phone: w.phone, balance: nextBal };
-      state.withdrawals[id].status = "rejected";
+      setAuthoritativeBalance(w.phone, nextBal);
+      state.withdrawals[id] = { ...w, status: "rejected" };
+      persistAll();
       renderScreenState();
       renderHistory();
       renderAdminPanel();
-      dbUpdateSafe(`users/${w.phone}`, { balance: nextBal });
-      dbUpdateSafe(`withdrawals/${id}`, { status: "rejected" });
+      dbSetSafe(`users/${w.phone}`, state.users[w.phone]);
+      dbSetSafe(`withdrawals/${id}`, state.withdrawals[id]);
     };
 
     window.adminSaveConfig = function() {
@@ -1242,6 +1420,7 @@
       const upi = document.getElementById("cfgUpi").value.trim() || DEFAULT_UPI;
       const notice = document.getElementById("cfgNotice").value.trim();
       state.config = { forcedNumber, upi, notice };
+      persistAll();
       renderNoticeAndUpi();
       dbSetSafe("config", state.config);
       alert("सेटिंग्स सेव हो गईं!");
@@ -1280,12 +1459,12 @@
           const status = payout > 0 ? "Won" : "Lost";
           b.status = status;
           b.payout = payout;
-          dbUpdateSafe(`bets/${betId}`, { status, payout });
+          dbSetSafe(`bets/${betId}`, b);
           if (payout > 0 && b.phone) {
             const u = state.users[b.phone] || { phone: b.phone, balance: 0 };
             const nextBal = Number(u.balance || 0) + payout;
-            state.users[b.phone] = { ...u, phone: b.phone, balance: nextBal };
-            dbUpdateSafe(`users/${b.phone}`, { balance: nextBal });
+            setAuthoritativeBalance(b.phone, nextBal);
+            dbSetSafe(`users/${b.phone}`, state.users[b.phone]);
           }
         }
       }
@@ -1294,6 +1473,7 @@
         state.config.forcedNumber = "";
         dbUpdateSafe("config", { forcedNumber: "" });
       }
+      persistAll();
       dbSetSafe("results", currentResults);
       dbSetSafe("lastProcessedPeriod", prevPeriodId);
       renderScreenState();
@@ -1319,6 +1499,7 @@
 
     setInterval(updateTimerDisplay, 1000);
     updateTimerDisplay();
+    setAuthMode("register");
     renderScreenState();
     renderNoticeAndUpi();
     renderHistory();
@@ -1345,49 +1526,63 @@
         } else {
           set(ref(database, "config"), state.config).catch(() => {});
         }
+        persistAll();
         renderNoticeAndUpi();
         renderAdminPanel();
       });
 
       onValue(ref(database, "users"), (snap) => {
         const remoteUsers = snap.exists() ? snap.val() : {};
-        state.users = { ...remoteUsers, ...state.users };
-        if (remoteUsers && currentPhone && remoteUsers[currentPhone] && typeof remoteUsers[currentPhone].balance === "number") {
-          state.users[currentPhone] = { ...state.users[currentPhone], ...remoteUsers[currentPhone] };
-        }
+        state.users = mergeUsersWithMasterLock(remoteUsers);
+        persistAll();
         renderScreenState();
         renderAdminPanel();
       });
 
       onValue(ref(database, "deposits"), (snap) => {
         const remoteDeps = snap.exists() ? snap.val() : {};
-        state.deposits = { ...state.deposits, ...remoteDeps };
+        const merged = { ...remoteDeps };
+        Object.keys(state.deposits || {}).forEach((id) => {
+          const locD = state.deposits[id];
+          const remD = remoteDeps[id];
+          if (!remD || (remD.status === "pending" && locD.status === "approved")) {
+            merged[id] = locD;
+          }
+        });
+        state.deposits = merged;
+        persistAll();
         renderHistory();
         renderAdminPanel();
       });
 
       onValue(ref(database, "withdrawals"), (snap) => {
         const remoteWds = snap.exists() ? snap.val() : {};
-        state.withdrawals = { ...state.withdrawals, ...remoteWds };
+        state.withdrawals = { ...remoteWds, ...state.withdrawals };
+        persistAll();
         renderHistory();
         renderAdminPanel();
       });
 
       onValue(ref(database, "bets"), (snap) => {
         const remoteBets = snap.exists() ? snap.val() : {};
-        state.bets = { ...state.bets, ...remoteBets };
+        state.bets = { ...remoteBets, ...state.bets };
+        persistAll();
         renderHistory();
       });
 
       onValue(ref(database, "results"), (snap) => {
         if (snap.exists() && Array.isArray(snap.val()) && snap.val().length) {
           state.results = snap.val();
+          persistAll();
         }
         renderHistory();
       });
 
       onValue(ref(database, "lastProcessedPeriod"), (snap) => {
-        if (snap.exists()) state.lastProcessedPeriod = snap.val();
+        if (snap.exists()) {
+          state.lastProcessedPeriod = snap.val();
+          persistAll();
+        }
       });
     };
   </script>
