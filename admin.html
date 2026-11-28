@@ -54,6 +54,7 @@
       <div>
         <h3 style="margin:0;">Jalwa.Game Admin</h3>
         <div class="muted" id="fbStatus">Firebase: Connecting...</div>
+        <div class="muted mt-2" id="debugInfo">Deposits loaded: 0</div>
       </div>
       <div class="row">
         <button class="btn-sm" type="button" onclick="syncAllFromFirebase()">↻ Sync Now</button>
@@ -106,6 +107,10 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    function cleanKey(val) {
+      return String(val || "").trim().replace(/[.#$[\]/]/g, "_");
+    }
+
     let activeTab = "deposits";
     let unlocked = sessionStorage.getItem(SESSION_KEY) === "1";
     let store = (() => {
@@ -123,6 +128,13 @@
       withdrawals: store.withdrawals || {}
     };
 
+    function updateDebugInfo(msg) {
+      const el = document.getElementById("debugInfo");
+      if (!el) return;
+      const depCount = Object.values(store.deposits || {}).filter(v => v && typeof v === "object").length;
+      el.textContent = msg || `Deposits loaded: ${depCount}`;
+    }
+
     function applyAuthView() {
       document.getElementById("lockBox").style.display = unlocked ? "none" : "block";
       document.getElementById("panelBox").style.display = unlocked ? "block" : "none";
@@ -136,10 +148,25 @@
       } catch {}
     }
 
+    function normalizeRemoteMap(rawVal) {
+      if (!rawVal || typeof rawVal !== "object") return {};
+      if (Array.isArray(rawVal)) {
+        const obj = {};
+        rawVal.forEach((item, idx) => {
+          if (item && typeof item === "object") {
+            obj[item.id || `item_${idx}`] = item;
+          }
+        });
+        return obj;
+      }
+      return rawVal;
+    }
+
     function mergeById(localMap, remoteMap) {
-      const merged = { ...(remoteMap || {}) };
+      const remClean = normalizeRemoteMap(remoteMap);
+      const merged = { ...remClean };
       Object.entries(localMap || {}).forEach(([id, loc]) => {
-        if (!loc) return;
+        if (!loc || typeof loc !== "object") return;
         const rem = merged[id];
         if (!rem) {
           merged[id] = loc;
@@ -158,8 +185,11 @@
       saveCache();
       try {
         await set(ref(db, path), val);
+        return true;
       } catch (e) {
         alert("Firebase write error: " + (e.message || e));
+        updateDebugInfo("Write error: " + (e.message || e));
+        return false;
       }
     }
 
@@ -204,60 +234,78 @@
         ]);
         if (dSnap.exists()) store.deposits = mergeById(store.deposits, dSnap.val());
         if (wSnap.exists()) store.withdrawals = mergeById(store.withdrawals, wSnap.val());
-        if (uSnap.exists()) store.users = { ...(uSnap.val() || {}), ...store.users };
+        if (uSnap.exists()) store.users = { ...normalizeRemoteMap(uSnap.val()), ...store.users };
         if (cSnap.exists()) store.config = { ...store.config, ...cSnap.val() };
         saveCache();
+        updateDebugInfo();
         if (unlocked) render();
       } catch (e) {
         console.warn("Sync error:", e);
+        updateDebugInfo("Sync error: " + (e.message || e));
       }
     };
 
     window.approveDeposit = async function(id) {
       const d = store.deposits[id];
-      if (!d || d.status !== "pending") return;
-      const u = store.users[d.phone] || { phone: d.phone, balance: 0 };
+      if (!d) return;
+      const status = d.status || "pending";
+      if (status !== "pending") return;
+      const phoneKey = cleanKey(d.phone);
+      const u = store.users[d.phone] || store.users[phoneKey] || { phone: d.phone, balance: 0 };
       const nextBal = Number(u.balance || 0) + Number(d.amount || 0);
-      store.users[d.phone] = { ...u, phone: d.phone, balance: nextBal, updatedAt: Date.now() };
-      store.deposits[id] = { ...d, status: "approved", approvedAt: Date.now(), updatedAt: Date.now() };
-      await writePath(`users/${d.phone}`, store.users[d.phone]);
-      await writePath(`deposits/${id}`, store.deposits[id]);
+      const updatedUser = { ...u, phone: d.phone, balance: nextBal, updatedAt: Date.now() };
+      const updatedDep = { ...d, status: "approved", approvedAt: Date.now(), updatedAt: Date.now() };
+
+      store.users[d.phone] = updatedUser;
+      store.deposits[id] = updatedDep;
+
+      await writePath(`users/${phoneKey}`, updatedUser);
+      await writePath(`deposits/${cleanKey(id)}`, updatedDep);
       render();
     };
 
     window.rejectDeposit = async function(id) {
       const d = store.deposits[id];
-      if (!d || d.status !== "pending") return;
-      store.deposits[id] = { ...d, status: "rejected", updatedAt: Date.now() };
-      await writePath(`deposits/${id}`, store.deposits[id]);
+      if (!d) return;
+      const updatedDep = { ...d, status: "rejected", updatedAt: Date.now() };
+      store.deposits[id] = updatedDep;
+      await writePath(`deposits/${cleanKey(id)}`, updatedDep);
       render();
     };
 
     window.approveWithdraw = async function(id) {
       const w = store.withdrawals[id];
-      if (!w || w.status !== "pending") return;
-      store.withdrawals[id] = { ...w, status: "approved", updatedAt: Date.now() };
-      await writePath(`withdrawals/${id}`, store.withdrawals[id]);
+      if (!w) return;
+      const updatedWd = { ...w, status: "approved", updatedAt: Date.now() };
+      store.withdrawals[id] = updatedWd;
+      await writePath(`withdrawals/${cleanKey(id)}`, updatedWd);
       render();
     };
 
     window.refundWithdraw = async function(id) {
       const w = store.withdrawals[id];
-      if (!w || w.status !== "pending") return;
-      const u = store.users[w.phone] || { phone: w.phone, balance: 0 };
+      if (!w) return;
+      const phoneKey = cleanKey(w.phone);
+      const u = store.users[w.phone] || store.users[phoneKey] || { phone: w.phone, balance: 0 };
       const nextBal = Number(u.balance || 0) + Number(w.amount || 0);
-      store.users[w.phone] = { ...u, phone: w.phone, balance: nextBal, updatedAt: Date.now() };
-      store.withdrawals[id] = { ...w, status: "rejected", updatedAt: Date.now() };
-      await writePath(`users/${w.phone}`, store.users[w.phone]);
-      await writePath(`withdrawals/${id}`, store.withdrawals[id]);
+      const updatedUser = { ...u, phone: w.phone, balance: nextBal, updatedAt: Date.now() };
+      const updatedWd = { ...w, status: "rejected", updatedAt: Date.now() };
+
+      store.users[w.phone] = updatedUser;
+      store.withdrawals[id] = updatedWd;
+
+      await writePath(`users/${phoneKey}`, updatedUser);
+      await writePath(`withdrawals/${cleanKey(id)}`, updatedWd);
       render();
     };
 
     window.adjustUserBal = async function(phone, delta) {
-      const u = store.users[phone] || { phone, balance: 0 };
+      const phoneKey = cleanKey(phone);
+      const u = store.users[phone] || store.users[phoneKey] || { phone, balance: 0 };
       const nextBal = Math.max(0, Number(u.balance || 0) + delta);
-      store.users[phone] = { ...u, phone, balance: nextBal, updatedAt: Date.now() };
-      await writePath(`users/${phone}`, store.users[phone]);
+      const updatedUser = { ...u, phone, balance: nextBal, updatedAt: Date.now() };
+      store.users[phone] = updatedUser;
+      await writePath(`users/${phoneKey}`, updatedUser);
       render();
     };
 
@@ -277,55 +325,62 @@
     function render() {
       if (!unlocked) return;
       const box = document.getElementById("contentBox");
+      updateDebugInfo();
 
       if (activeTab === "deposits") {
         const items = Object.entries(store.deposits || {})
           .filter(([, v]) => v && typeof v === "object")
-          .sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
-        box.innerHTML = items.length ? items.map(([id, d]) => `
-          <div class="card">
-            <div class="flex-between">
-              <div>
-                <b>${d.phone}</b> · ₹${Number(d.amount || 0).toFixed(0)}<br>
-                <span class="muted">UTR: ${d.utr || "-"}</span>
+          .sort((a, b) => Number(b[1].time || b[1].updatedAt || 0) - Number(a[1].time || a[1].updatedAt || 0));
+        box.innerHTML = items.length ? items.map(([id, d]) => {
+          const st = d.status || "pending";
+          return `
+            <div class="card">
+              <div class="flex-between">
+                <div>
+                  <b>${d.phone || "-"}</b> · ₹${Number(d.amount || 0).toFixed(0)}<br>
+                  <span class="muted">UTR: ${d.utr || "-"}</span>
+                </div>
+                <span class="badge ${st}">${st}</span>
               </div>
-              <span class="badge ${d.status || "pending"}">${d.status || "pending"}</span>
+              ${st === "pending" ? `
+                <div class="row mt-2">
+                  <button class="btn-green" type="button" onclick="approveDeposit('${id}')">Approve & Add</button>
+                  <button class="btn-red" type="button" onclick="rejectDeposit('${id}')">Reject</button>
+                </div>
+              ` : ""}
             </div>
-            ${(d.status || "pending") === "pending" ? `
-              <div class="row mt-2">
-                <button class="btn-green" type="button" onclick="approveDeposit('${id}')">Approve & Add</button>
-                <button class="btn-red" type="button" onclick="rejectDeposit('${id}')">Reject</button>
-              </div>
-            ` : ""}
-          </div>
-        `).join("") : `<div class="card muted">कोई Deposit रिक्वेस्ट नहीं है।</div>`;
+          `;
+        }).join("") : `<div class="card muted">कोई Deposit रिक्वेस्ट नहीं है।</div>`;
       } else if (activeTab === "withdrawals") {
         const items = Object.entries(store.withdrawals || {})
           .filter(([, v]) => v && typeof v === "object")
-          .sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
-        box.innerHTML = items.length ? items.map(([id, w]) => `
-          <div class="card">
-            <div class="flex-between">
-              <div>
-                <b>${w.phone}</b> · ₹${Number(w.amount || 0).toFixed(0)}<br>
-                <span class="muted">UPI: ${w.upi || "-"}</span>
+          .sort((a, b) => Number(b[1].time || b[1].updatedAt || 0) - Number(a[1].time || a[1].updatedAt || 0));
+        box.innerHTML = items.length ? items.map(([id, w]) => {
+          const st = w.status || "pending";
+          return `
+            <div class="card">
+              <div class="flex-between">
+                <div>
+                  <b>${w.phone || "-"}</b> · ₹${Number(w.amount || 0).toFixed(0)}<br>
+                  <span class="muted">UPI: ${w.upi || "-"}</span>
+                </div>
+                <span class="badge ${st}">${st}</span>
               </div>
-              <span class="badge ${w.status || "pending"}">${w.status || "pending"}</span>
+              ${st === "pending" ? `
+                <div class="row mt-2">
+                  <button class="btn-green" type="button" onclick="approveWithdraw('${id}')">Approve Paid</button>
+                  <button class="btn-red" type="button" onclick="refundWithdraw('${id}')">Reject & Refund</button>
+                </div>
+              ` : ""}
             </div>
-            ${(w.status || "pending") === "pending" ? `
-              <div class="row mt-2">
-                <button class="btn-green" type="button" onclick="approveWithdraw('${id}')">Approve Paid</button>
-                <button class="btn-red" type="button" onclick="refundWithdraw('${id}')">Reject & Refund</button>
-              </div>
-            ` : ""}
-          </div>
-        `).join("") : `<div class="card muted">कोई Withdrawal रिक्वेस्ट नहीं है।</div>`;
+          `;
+        }).join("") : `<div class="card muted">कोई Withdrawal रिक्वेस्ट नहीं है।</div>`;
       } else if (activeTab === "users") {
-        const users = Object.values(store.users || {});
+        const users = Object.values(store.users || {}).filter(u => u && typeof u === "object");
         box.innerHTML = users.length ? users.map(u => `
           <div class="card flex-between">
             <div>
-              <b>${u.phone}</b><br>
+              <b>${u.phone || "-"}</b><br>
               <span class="muted">Balance: ₹${Number(u.balance || 0).toFixed(2)}</span>
             </div>
             <div class="row">
@@ -364,7 +419,10 @@
     onValue(ref(db, "deposits"), (s) => {
       store.deposits = mergeById(store.deposits, s.exists() ? s.val() : {});
       saveCache();
+      updateDebugInfo();
       render();
+    }, (err) => {
+      updateDebugInfo("Deposits listener error: " + (err.message || err));
     });
 
     onValue(ref(db, "withdrawals"), (s) => {
@@ -374,7 +432,7 @@
     });
 
     onValue(ref(db, "users"), (s) => {
-      store.users = { ...(s.exists() ? s.val() : {}), ...store.users };
+      store.users = { ...normalizeRemoteMap(s.exists() ? s.val() : {}), ...store.users };
       saveCache();
       render();
     });
