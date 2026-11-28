@@ -652,6 +652,10 @@
     const MASTER_BAL_KEY = "jalwa_master_balances_v4";
     const REGISTERED_NUMBERS_KEY = "jalwa_registered_numbers_v4";
 
+    function cleanKey(val) {
+      return String(val || "").trim().replace(/[.#$[\]/]/g, "_");
+    }
+
     function readStore(key, fallback) {
       try {
         const raw = localStorage.getItem(key);
@@ -1264,7 +1268,7 @@
         return true;
       } catch (err) {
         console.warn("Firebase set error on " + path + ":", err);
-        updateSyncBadge("Firebase: Sync Failed (Check DB Rules)", "#f87171");
+        updateSyncBadge("Firebase: Sync Failed (" + (err.code || err.message || "Error") + ")", "#f87171");
         return false;
       }
     }
@@ -1313,7 +1317,7 @@
 
       renderScreenState();
       renderHistory();
-      dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
+      dbSetSafe(`users/${cleanKey(currentPhone)}`, state.users[currentPhone]);
       dbSetSafe(`bets/${betKey}`, state.bets[betKey]);
 
       closeModal("betModal");
@@ -1327,6 +1331,8 @@
       }
       const amtInput = document.getElementById("depositAmount");
       const utrInput = document.getElementById("depositUtr");
+      const submitBtn = document.getElementById("submitDepositBtn");
+
       const amt = Number((amtInput && amtInput.value) || 0);
       const utr = ((utrInput && utrInput.value) || "").trim();
 
@@ -1339,41 +1345,50 @@
         return;
       }
 
-      const depId = "dep_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
-      const nowTs = Date.now();
-      const depositRecord = {
-        id: depId,
-        phone: currentPhone,
-        amount: amt,
-        utr: utr,
-        status: "pending",
-        time: nowTs,
-        updatedAt: nowTs
-      };
+      if (submitBtn) submitBtn.disabled = true;
 
-      if (!state.deposits || typeof state.deposits !== "object") {
-        state.deposits = {};
-      }
-      state.deposits[depId] = depositRecord;
+      try {
+        const nowTs = Date.now();
+        const safePhone = cleanKey(currentPhone);
+        const depId = cleanKey(`dep_${nowTs}_${Math.random().toString(36).slice(2, 6)}`);
 
-      if (!state.users[currentPhone]) {
-        state.users[currentPhone] = { phone: currentPhone, balance: 0, createdAt: nowTs, updatedAt: nowTs };
-      }
+        const depositRecord = {
+          id: depId,
+          phone: currentPhone,
+          amount: amt,
+          utr: utr,
+          status: "pending",
+          time: nowTs,
+          updatedAt: nowTs
+        };
 
-      persistAll();
-      const userSynced = await dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
-      const depSynced = await dbSetSafe(`deposits/${depId}`, depositRecord);
+        if (!state.deposits || typeof state.deposits !== "object") {
+          state.deposits = {};
+        }
+        state.deposits[depId] = depositRecord;
 
-      if (amtInput) amtInput.value = "";
-      if (utrInput) utrInput.value = "";
-      closeModal("depositModal");
-      renderHistory();
-      renderAdminPanel();
+        if (!state.users[currentPhone]) {
+          state.users[currentPhone] = { phone: currentPhone, balance: 0, createdAt: nowTs, updatedAt: nowTs };
+        }
 
-      if (depSynced && userSynced) {
-        alert("डिपॉज़िट रिक्वेस्ट सबमिट हो गई और सर्वर पर सिंक हो गई है! अप्रूवल के बाद बैलेंस वॉलेट में जुड़ जाएगा।");
-      } else {
-        alert("डिपॉज़िट रिक्वेस्ट लोकल में सेव हो गई है, लेकिन Firebase सर्वर सिंक में समस्या आई है। कृपया Firebase Database Rules जांचें।");
+        persistAll();
+
+        const userSynced = await dbSetSafe(`users/${safePhone}`, state.users[currentPhone]);
+        const depSynced = await dbSetSafe(`deposits/${depId}`, depositRecord);
+
+        if (amtInput) amtInput.value = "";
+        if (utrInput) utrInput.value = "";
+        closeModal("depositModal");
+        renderHistory();
+        renderAdminPanel();
+
+        if (depSynced && userSynced) {
+          alert("डिपॉज़िट रिक्वेस्ट सबमिट हो गई है! अब Admin Panel में शो होगी।");
+        } else {
+          alert("रिक्वेस्ट लोकल में सेव हुई है, लेकिन Firebase सर्वर पर लिखने में दिक्कत आई है। कृपया Firebase Realtime Database Rules में read/write चेक करें।");
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
       }
     };
 
@@ -1418,7 +1433,7 @@
       renderScreenState();
       renderHistory();
       renderAdminPanel();
-      dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
+      dbSetSafe(`users/${cleanKey(currentPhone)}`, state.users[currentPhone]);
       dbSetSafe(`withdrawals/${wdId}`, state.withdrawals[wdId]);
 
       document.getElementById("withdrawAmount").value = "";
@@ -1446,7 +1461,7 @@
 
       if (fb) {
         try {
-          const snap = await fb.get(fb.ref(fb.db, `users/${phone}`));
+          const snap = await fb.get(fb.ref(fb.db, `users/${cleanKey(phone)}`));
           if (snap.exists() && snap.val()) {
             const remUser = snap.val();
             registeredNumbers[phone] = true;
@@ -1494,7 +1509,7 @@
         };
 
         persistAll();
-        dbSetSafe(`users/${phone}`, state.users[phone]);
+        dbSetSafe(`users/${cleanKey(phone)}`, state.users[phone]);
         renderScreenState();
         renderHistory();
       } else {
@@ -1654,14 +1669,14 @@
       setAuthoritativeBalance(phone, next);
       renderScreenState();
       renderAdminPanel();
-      dbSetSafe(`users/${phone}`, state.users[phone]);
+      dbSetSafe(`users/${cleanKey(phone)}`, state.users[phone]);
     };
 
     window.adminResetBalance = function(phone) {
       clearAuthoritativeBalance(phone);
       renderScreenState();
       renderAdminPanel();
-      dbSetSafe(`users/${phone}`, state.users[phone]);
+      dbSetSafe(`users/${cleanKey(phone)}`, state.users[phone]);
     };
 
     window.adminSetExactBalance = function(phone) {
@@ -1673,7 +1688,7 @@
       setAuthoritativeBalance(phone, val);
       renderScreenState();
       renderAdminPanel();
-      dbSetSafe(`users/${phone}`, state.users[phone]);
+      dbSetSafe(`users/${cleanKey(phone)}`, state.users[phone]);
     };
 
     window.adminApproveDeposit = function(id) {
@@ -1691,8 +1706,8 @@
       renderHistory();
       renderAdminPanel();
 
-      dbSetSafe(`users/${d.phone}`, state.users[d.phone]);
-      dbSetSafe(`deposits/${id}`, state.deposits[id]);
+      dbSetSafe(`users/${cleanKey(d.phone)}`, state.users[d.phone]);
+      dbSetSafe(`deposits/${cleanKey(id)}`, state.deposits[id]);
       alert(`₹${addAmt} बैलेंस ${d.phone} के वॉलेट में जुड़ गया और लॉक हो गया!`);
     };
 
@@ -1703,7 +1718,7 @@
       persistAll();
       renderHistory();
       renderAdminPanel();
-      dbSetSafe(`deposits/${id}`, state.deposits[id]);
+      dbSetSafe(`deposits/${cleanKey(id)}`, state.deposits[id]);
     };
 
     window.adminApproveWithdraw = function(id) {
@@ -1713,7 +1728,7 @@
       persistAll();
       renderHistory();
       renderAdminPanel();
-      dbSetSafe(`withdrawals/${id}`, state.withdrawals[id]);
+      dbSetSafe(`withdrawals/${cleanKey(id)}`, state.withdrawals[id]);
     };
 
     window.adminRefundWithdraw = function(id) {
@@ -1727,8 +1742,8 @@
       renderScreenState();
       renderHistory();
       renderAdminPanel();
-      dbSetSafe(`users/${w.phone}`, state.users[w.phone]);
-      dbSetSafe(`withdrawals/${id}`, state.withdrawals[id]);
+      dbSetSafe(`users/${cleanKey(w.phone)}`, state.users[w.phone]);
+      dbSetSafe(`withdrawals/${cleanKey(id)}`, state.withdrawals[id]);
     };
 
     window.adminSaveConfig = function() {
@@ -1793,7 +1808,7 @@
             const u = state.users[b.phone] || { phone: b.phone, balance: 0 };
             const nextBal = Number(u.balance || 0) + payout;
             setAuthoritativeBalance(b.phone, nextBal);
-            dbSetSafe(`users/${b.phone}`, state.users[b.phone]);
+            dbSetSafe(`users/${cleanKey(b.phone)}`, state.users[b.phone]);
           }
         }
       }
