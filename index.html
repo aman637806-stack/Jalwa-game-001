@@ -427,7 +427,7 @@
 
       <div class="notice-bar">
         <span>📢</span>
-        <div class="notice-text" id="noticeBox">1466@ptyes. Our customer service will never ask for OTP or PIN.</div>
+        <div class="notice-text" id="noticeBox">rohit-m956@ptyes. Our customer service will never ask for OTP or PIN.</div>
         <button class="detail-pill" type="button" onclick="openModal('detailModal')">Detail</button>
       </div>
 
@@ -555,7 +555,7 @@
       </div>
 
       <div class="qr-box">
-        <img id="depositQrImg" src="https://i.ibb.co/placeholder/6098.jpg" alt="Payment QR Code" />
+        <img id="depositQrImg" src="https://i.ibb.co/sp5rvQc3/Screenshot-20261128-163820-Gallery.jpg" alt="Payment QR Code" />
         <div class="qr-caption" id="depositQrCaption">Scan QR or Pay directly in your UPI App</div>
       </div>
 
@@ -567,7 +567,7 @@
       </div>
 
       <button class="btn-gold mt-3" type="button" style="width:100%;padding:11px;border-radius:10px;" onclick="launchUpiAppAndPrepare()">Pay (Open UPI App Automatically)</button>
-      <a class="upi-intent-link" id="upiIntentAnchor" href="upi://pay?pa=jalwarohit1466@ptyes&pn=JalwaGame&am=1000&cu=INR">UPI ऐप में सीधे पेमेंट खोलें</a>
+      <a class="upi-intent-link" id="upiIntentAnchor" href="upi://pay?pa=rohit-m956@ptyes&pn=JalwaGame&am=1000&cu=INR">UPI ऐप में सीधे पेमेंट खोलें</a>
 
       <input class="modal-inp mt-3" type="text" id="depositUtr" placeholder="पेमेंट के बाद UTR / Ref नंबर डालें" />
       <button class="btn-primary mt-2" type="button" id="submitDepositBtn" onclick="submitDeposit()">Submit Deposit</button>
@@ -597,7 +597,7 @@
       </div>
       <p class="mt-2" id="detailNoticeText"></p>
       <div class="qr-box">
-        <img id="detailQrImg" src="https://i.ibb.co/placeholder/6098.jpg" alt="Payment QR Code" />
+        <img id="detailQrImg" src="https://i.ibb.co/sp5rvQc3/Screenshot-20261128-163820-Gallery.jpg" alt="Payment QR Code" />
         <div class="qr-caption">Official Payment QR Code</div>
       </div>
       <p class="muted">न्यूनतम डिपॉज़िट: ₹1,000 | न्यूनतम विड्रॉल: ₹1,000 | नया बैलेंस: ₹0.00</p>
@@ -648,11 +648,11 @@
   <script>
     const ADMIN_PIN = "9999";
     const MIN_AMOUNT = 1000;
-    const DEFAULT_UPI = "jalwarohit1466@ptyes";
-    const DEFAULT_QR_URL = "https://i.ibb.co/placeholder/6098.jpg"; // Yahan apni ImgBB QR image link daalein
-    const STATE_KEY = "jalwa_game_state_v3";
-    const MASTER_BAL_KEY = "jalwa_master_balances_v3";
-    const REGISTERED_NUMBERS_KEY = "jalwa_registered_numbers_v3";
+    const DEFAULT_UPI = "rohit-m956@ptyes";
+    const DEFAULT_QR_URL = "https://i.ibb.co/sp5rvQc3/Screenshot-20261128-163820-Gallery.jpg";
+    const STATE_KEY = "jalwa_game_state_v4";
+    const MASTER_BAL_KEY = "jalwa_master_balances_v4";
+    const REGISTERED_NUMBERS_KEY = "jalwa_registered_numbers_v4";
 
     function readStore(key, fallback) {
       try {
@@ -1533,7 +1533,7 @@
         body.innerHTML = `
           <label class="muted">Forced Next Round Number (0-9, खाली छोड़ने पर रैंडम)</label>
           <input class="modal-inp mt-2" type="number" id="cfgForcedNum" min="0" max="9" value="${cfg.forcedNumber ?? ""}" placeholder="0 से 9" />
-          <label class="muted mt-3" style="display:block;">QR Code Image URL (ImgBB Direct Link)</label>
+          <label class="muted mt-3" style="display:block;">QR Code Image URL</label>
           <input class="modal-inp mt-2" type="text" id="cfgQrUrl" value="${cfg.qrUrl || DEFAULT_QR_URL}" />
           <label class="muted mt-3" style="display:block;">UPI ID (For Auto App Redirect)</label>
           <input class="modal-inp mt-2" type="text" id="cfgUpi" value="${cfg.upi || DEFAULT_UPI}" />
