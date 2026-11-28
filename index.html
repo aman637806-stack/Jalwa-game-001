@@ -652,6 +652,10 @@
     const MASTER_BAL_KEY = "jalwa_master_balances_v4";
     const REGISTERED_NUMBERS_KEY = "jalwa_registered_numbers_v4";
 
+    function normalizePhone(val) {
+      return String(val || "").replace(/\D/g, "").slice(-10);
+    }
+
     function cleanKey(val) {
       return String(val || "").trim().replace(/[.#$[\]/]/g, "_");
     }
@@ -673,7 +677,7 @@
 
     let masterBalances = readStore(MASTER_BAL_KEY, {});
     let registeredNumbers = readStore(REGISTERED_NUMBERS_KEY, {});
-    let currentPhone = localStorage.getItem("jalwa_phone") || "";
+    let currentPhone = normalizePhone(localStorage.getItem("jalwa_phone") || "");
     let authMode = "register";
     let currentHistoryTab = "results";
     let currentAdminTab = "users";
@@ -703,7 +707,8 @@
     };
 
     Object.keys(state.users || {}).forEach((ph) => {
-      if (state.users[ph]) registeredNumbers[ph] = true;
+      const norm = normalizePhone(ph);
+      if (norm && state.users[ph]) registeredNumbers[norm] = true;
     });
 
     function persistAll() {
@@ -713,7 +718,8 @@
     }
 
     function isNumberAlreadyRegistered(phone) {
-      return Boolean(registeredNumbers[phone] || (state.users && state.users[phone]));
+      const p = normalizePhone(phone);
+      return Boolean(p && (registeredNumbers[p] || (state.users && state.users[p])));
     }
 
     window.hideRoundResultPopup = function() {
@@ -824,81 +830,123 @@
     };
 
     function setAuthoritativeBalance(phone, balance) {
+      const p = normalizePhone(phone);
+      if (!p) return;
       const cleanBal = Math.max(0, Number(balance || 0));
-      masterBalances[phone] = {
+      const nowTs = Date.now();
+      masterBalances[p] = {
         balance: cleanBal,
-        updatedAt: Date.now()
+        updatedAt: nowTs
       };
-      const existing = state.users[phone] || { phone, createdAt: Date.now() };
-      state.users[phone] = {
+      const existing = state.users[p] || { phone: p, createdAt: nowTs };
+      state.users[p] = {
         ...existing,
-        phone,
+        phone: p,
         balance: cleanBal,
-        updatedAt: Date.now()
+        updatedAt: nowTs
       };
       persistAll();
     }
 
     function clearAuthoritativeBalance(phone) {
-      delete masterBalances[phone];
-      const existing = state.users[phone] || { phone, createdAt: Date.now() };
-      state.users[phone] = {
-        ...existing,
-        phone,
+      const p = normalizePhone(phone);
+      if (!p) return;
+      const nowTs = Date.now();
+      masterBalances[p] = {
         balance: 0,
-        updatedAt: Date.now()
+        updatedAt: nowTs
+      };
+      const existing = state.users[p] || { phone: p, createdAt: nowTs };
+      state.users[p] = {
+        ...existing,
+        phone: p,
+        balance: 0,
+        updatedAt: nowTs
       };
       persistAll();
     }
 
     function mergeUsersWithMasterLock(remoteUsers) {
-      const merged = { ...(remoteUsers || {}) };
-      Object.keys(merged).forEach((ph) => {
-        registeredNumbers[ph] = true;
+      const merged = {};
+
+      Object.entries(remoteUsers || {}).forEach(([k, remU]) => {
+        if (!remU || typeof remU !== "object") return;
+        const p = normalizePhone(remU.phone || k);
+        if (!p) return;
+        registeredNumbers[p] = true;
+        merged[p] = { ...remU, phone: p };
       });
-      Object.keys(state.users || {}).forEach((ph) => {
-        registeredNumbers[ph] = true;
-        const locU = state.users[ph];
-        const remU = merged[ph];
-        if (!remU || Number(locU.updatedAt || 0) >= Number((remU && remU.updatedAt) || 0)) {
-          merged[ph] = locU;
+
+      Object.entries(state.users || {}).forEach(([k, locU]) => {
+        if (!locU || typeof locU !== "object") return;
+        const p = normalizePhone(locU.phone || k);
+        if (!p) return;
+        registeredNumbers[p] = true;
+        const remU = merged[p];
+        if (!remU) {
+          merged[p] = { ...locU, phone: p };
+        } else {
+          const locTs = Number(locU.updatedAt || 0);
+          const remTs = Number(remU.updatedAt || 0);
+          if (locTs > remTs || (locTs === remTs && Number(locU.balance || 0) > Number(remU.balance || 0))) {
+            merged[p] = { ...remU, ...locU, phone: p };
+          } else {
+            merged[p] = { ...locU, ...remU, phone: p };
+          }
         }
       });
-      Object.keys(masterBalances || {}).forEach((ph) => {
-        const mb = masterBalances[ph];
-        if (!mb) return;
-        const base = merged[ph] || { phone: ph, createdAt: Date.now() };
-        merged[ph] = {
-          ...base,
-          phone: ph,
-          balance: Number(mb.balance || 0),
-          updatedAt: Math.max(Number(base.updatedAt || 0), Number(mb.updatedAt || 0))
-        };
+
+      Object.entries(masterBalances || {}).forEach(([k, mb]) => {
+        const p = normalizePhone(k);
+        if (!p || !mb) return;
+        const base = merged[p] || { phone: p, createdAt: Date.now() };
+        const mbTs = Number(mb.updatedAt || 0);
+        const baseTs = Number(base.updatedAt || 0);
+        if (mbTs >= baseTs) {
+          merged[p] = {
+            ...base,
+            phone: p,
+            balance: Number(mb.balance || 0),
+            updatedAt: mbTs
+          };
+        }
       });
+
       return merged;
     }
 
     function mergeRecordsById(localMap, remoteMap) {
-      const merged = { ...(remoteMap || {}) };
-      Object.entries(localMap || {}).forEach(([id, locItem]) => {
-        if (!locItem) return;
+      const merged = {};
+
+      Object.entries(remoteMap || {}).forEach(([rawId, remItem]) => {
+        if (!remItem || typeof remItem !== "object") return;
+        const id = cleanKey(remItem.id || rawId);
+        merged[id] = { ...remItem, id };
+      });
+
+      Object.entries(localMap || {}).forEach(([rawId, locItem]) => {
+        if (!locItem || typeof locItem !== "object") return;
+        const id = cleanKey(locItem.id || rawId);
         const remItem = merged[id];
         if (!remItem) {
-          merged[id] = locItem;
+          merged[id] = { ...locItem, id };
         } else {
           const locTime = Number(locItem.approvedAt || locItem.updatedAt || locItem.time || 0);
           const remTime = Number(remItem.approvedAt || remItem.updatedAt || remItem.time || 0);
           if (locItem.status === "approved" && remItem.status !== "approved") {
-            merged[id] = locItem;
+            merged[id] = { ...remItem, ...locItem, id };
           } else if (locTime > remTime) {
-            merged[id] = locItem;
+            merged[id] = { ...remItem, ...locItem, id };
           }
         }
       });
+
       return merged;
     }
 
     state.users = mergeUsersWithMasterLock(state.users);
+    state.deposits = mergeRecordsById({}, state.deposits);
+    state.withdrawals = mergeRecordsById({}, state.withdrawals);
     persistAll();
 
     function openModal(id) {
@@ -974,7 +1022,12 @@
     }
 
     async function syncLatestFromFirebase() {
-      if (!fb || !fb.get) return;
+      if (!fb || !fb.get) {
+        renderScreenState();
+        renderHistory();
+        renderAdminPanel();
+        return;
+      }
       try {
         const [depSnap, wdSnap, usrSnap, cfgSnap] = await Promise.all([
           fb.get(fb.ref(fb.db, "deposits")),
@@ -1176,7 +1229,7 @@
         `;
       } else if (currentHistoryTab === "bets") {
         const myBets = Object.values(state.bets || {})
-          .filter(b => b.phone === currentPhone)
+          .filter(b => normalizePhone(b.phone) === currentPhone)
           .sort((a, b) => (b.time || 0) - (a.time || 0))
           .slice(0, 20);
         if (!myBets.length) {
@@ -1200,8 +1253,8 @@
           </table>
         `;
       } else {
-        const deps = Object.values(state.deposits || {}).filter(d => d.phone === currentPhone).map(d => ({ ...d, kind: "Deposit" }));
-        const wds = Object.values(state.withdrawals || {}).filter(w => w.phone === currentPhone).map(w => ({ ...w, kind: "Withdraw" }));
+        const deps = Object.values(state.deposits || {}).filter(d => normalizePhone(d.phone) === currentPhone).map(d => ({ ...d, kind: "Deposit" }));
+        const wds = Object.values(state.withdrawals || {}).filter(w => normalizePhone(w.phone) === currentPhone).map(w => ({ ...w, kind: "Withdraw" }));
         const combined = [...deps, ...wds].sort((a, b) => (b.time || 0) - (a.time || 0));
         if (!combined.length) {
           card.innerHTML = `<div class="muted">कोई Deposit या Withdraw रिकॉर्ड नहीं मिला।</div>`;
@@ -1285,7 +1338,7 @@
       }
     }
 
-    window.submitBet = function() {
+    window.submitBet = async function() {
       if (!currentPhone || !pendingBet) return;
       const amt = Number(document.getElementById("betAmount").value);
       if (!amt || amt <= 0) {
@@ -1303,7 +1356,7 @@
       const newBal = bal - amt;
       setAuthoritativeBalance(currentPhone, newBal);
 
-      const betKey = "bet_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+      const betKey = cleanKey("bet_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6));
       state.bets[betKey] = {
         phone: currentPhone,
         periodId,
@@ -1317,8 +1370,10 @@
 
       renderScreenState();
       renderHistory();
-      dbSetSafe(`users/${cleanKey(currentPhone)}`, state.users[currentPhone]);
-      dbSetSafe(`bets/${betKey}`, state.bets[betKey]);
+      await Promise.all([
+        dbSetSafe(`users/${cleanKey(currentPhone)}`, state.users[currentPhone]),
+        dbSetSafe(`bets/${betKey}`, state.bets[betKey])
+      ]);
 
       closeModal("betModal");
       alert("बेट सफलतापूर्वक लग गई!");
@@ -1373,8 +1428,10 @@
 
         persistAll();
 
-        const userSynced = await dbSetSafe(`users/${safePhone}`, state.users[currentPhone]);
-        const depSynced = await dbSetSafe(`deposits/${depId}`, depositRecord);
+        const [userSynced, depSynced] = await Promise.all([
+          dbSetSafe(`users/${safePhone}`, state.users[currentPhone]),
+          dbSetSafe(`deposits/${depId}`, depositRecord)
+        ]);
 
         if (amtInput) amtInput.value = "";
         if (utrInput) utrInput.value = "";
@@ -1392,7 +1449,7 @@
       }
     };
 
-    window.submitWithdraw = function() {
+    window.submitWithdraw = async function() {
       if (!currentPhone) {
         alert("पहले रजिस्टर या लॉगिन करें।");
         return;
@@ -1419,7 +1476,7 @@
       setAuthoritativeBalance(currentPhone, newBal);
 
       const nowTs = Date.now();
-      const wdId = "wd_" + nowTs + "_" + Math.random().toString(36).slice(2, 6);
+      const wdId = cleanKey("wd_" + nowTs + "_" + Math.random().toString(36).slice(2, 6));
       state.withdrawals[wdId] = {
         id: wdId,
         phone: currentPhone,
@@ -1433,8 +1490,10 @@
       renderScreenState();
       renderHistory();
       renderAdminPanel();
-      dbSetSafe(`users/${cleanKey(currentPhone)}`, state.users[currentPhone]);
-      dbSetSafe(`withdrawals/${wdId}`, state.withdrawals[wdId]);
+      await Promise.all([
+        dbSetSafe(`users/${cleanKey(currentPhone)}`, state.users[currentPhone]),
+        dbSetSafe(`withdrawals/${wdId}`, state.withdrawals[wdId])
+      ]);
 
       document.getElementById("withdrawAmount").value = "";
       document.getElementById("withdrawUpi").value = "";
@@ -1444,7 +1503,7 @@
 
     document.getElementById("registerSubmitBtn").onclick = async () => {
       const code = document.getElementById("countryCodeSelect").value;
-      const phone = (document.getElementById("regPhoneInput").value || "").trim();
+      const phone = normalizePhone(document.getElementById("regPhoneInput").value || "");
       const pass = document.getElementById("regPassInput").value || "";
       const confirmPass = document.getElementById("regConfirmPassInput").value || "";
       const inviteCode = (document.getElementById("regInviteInput").value || "").trim();
@@ -1465,11 +1524,13 @@
           if (snap.exists() && snap.val()) {
             const remUser = snap.val();
             registeredNumbers[phone] = true;
-            state.users[phone] = {
-              ...(state.users[phone] || {}),
-              ...remUser,
-              phone
-            };
+            state.users[phone] = mergeUsersWithMasterLock({
+              [phone]: {
+                ...(state.users[phone] || {}),
+                ...remUser,
+                phone
+              }
+            })[phone];
             persistAll();
           }
         } catch (e) {}
@@ -1509,7 +1570,7 @@
         };
 
         persistAll();
-        dbSetSafe(`users/${cleanKey(phone)}`, state.users[phone]);
+        await dbSetSafe(`users/${cleanKey(phone)}`, state.users[phone]);
         renderScreenState();
         renderHistory();
       } else {
@@ -1527,6 +1588,7 @@
         persistAll();
         renderScreenState();
         renderHistory();
+        syncLatestFromFirebase();
       }
     };
 
@@ -1569,24 +1631,27 @@
           body.innerHTML = `<div class="muted">कोई यूज़र नहीं मिला।</div>`;
           return;
         }
-        body.innerHTML = list.map(u => `
+        body.innerHTML = list.map(u => {
+          const p = normalizePhone(u.phone);
+          return `
           <div class="card" style="margin-top:8px;">
             <div class="flex-between">
               <div>
-                <b>${u.countryCode || "+91"} ${u.phone}</b> · <span class="muted">Inv: ${u.inviteCode || "-"}</span><br>
+                <b>${u.countryCode || "+91"} ${p}</b> · <span class="muted">Inv: ${u.inviteCode || "-"}</span><br>
                 <span class="muted">Balance: ₹${Number(u.balance || 0).toFixed(2)}</span>
               </div>
               <div class="row">
-                <button class="btn-sm btn-green" type="button" onclick="adminAdjustBalance('${u.phone}', 1000)">+₹1000</button>
-                <button class="btn-sm btn-red" type="button" onclick="adminResetBalance('${u.phone}')">Reset ₹0</button>
+                <button class="btn-sm btn-green" type="button" onclick="adminAdjustBalance('${p}', 1000)">+₹1000</button>
+                <button class="btn-sm btn-red" type="button" onclick="adminResetBalance('${p}')">Reset ₹0</button>
               </div>
             </div>
             <div class="row mt-2">
-              <input class="modal-inp" type="number" id="customBal_${u.phone}" placeholder="नया बैलेंस सेट करें" style="flex:1;" />
-              <button class="btn-sm btn-primary" type="button" style="width:auto;" onclick="adminSetExactBalance('${u.phone}')">Set</button>
+              <input class="modal-inp" type="number" id="customBal_${p}" placeholder="नया बैलेंस सेट करें" style="flex:1;" />
+              <button class="btn-sm btn-primary" type="button" style="width:auto;" onclick="adminSetExactBalance('${p}')">Set</button>
             </div>
           </div>
-        `).join("");
+        `;
+        }).join("");
       } else if (currentAdminTab === "deposits") {
         const entries = Object.entries(state.deposits || {})
           .filter(([, d]) => d && typeof d === "object")
@@ -1603,23 +1668,26 @@
           body.innerHTML = headerHtml + `<div class="muted">कोई डिपॉज़िट रिक्वेस्ट नहीं है।</div>`;
           return;
         }
-        body.innerHTML = headerHtml + entries.map(([id, d]) => `
+        body.innerHTML = headerHtml + entries.map(([id, d]) => {
+          const safeId = cleanKey(id);
+          return `
           <div class="card" style="margin-top:8px;">
             <div class="flex-between">
               <div>
-                <b>${d.phone || "Unknown"}</b> · ₹${Number(d.amount || 0).toFixed(0)}<br>
+                <b>${normalizePhone(d.phone) || "Unknown"}</b> · ₹${Number(d.amount || 0).toFixed(0)}<br>
                 <span class="muted">UTR: ${d.utr || "-"}</span>
               </div>
               <span class="badge ${d.status || "pending"}">${d.status || "pending"}</span>
             </div>
             ${(d.status || "pending") === "pending" ? `
               <div class="row mt-2">
-                <button class="btn-sm btn-green" type="button" onclick="adminApproveDeposit('${id}')">Approve & Add</button>
-                <button class="btn-sm btn-red" type="button" onclick="adminRejectDeposit('${id}')">Reject</button>
+                <button class="btn-sm btn-green" type="button" onclick="adminApproveDeposit('${safeId}')">Approve & Add</button>
+                <button class="btn-sm btn-red" type="button" onclick="adminRejectDeposit('${safeId}')">Reject</button>
               </div>
             ` : ""}
           </div>
-        `).join("");
+        `;
+        }).join("");
       } else if (currentAdminTab === "withdrawals") {
         const entries = Object.entries(state.withdrawals || {})
           .filter(([, w]) => w && typeof w === "object")
@@ -1628,23 +1696,26 @@
           body.innerHTML = `<div class="muted">कोई विड्रॉल रिक्वेस्ट नहीं है।</div>`;
           return;
         }
-        body.innerHTML = entries.map(([id, w]) => `
+        body.innerHTML = entries.map(([id, w]) => {
+          const safeId = cleanKey(id);
+          return `
           <div class="card" style="margin-top:8px;">
             <div class="flex-between">
               <div>
-                <b>${w.phone}</b> · ₹${Number(w.amount || 0).toFixed(0)}<br>
+                <b>${normalizePhone(w.phone)}</b> · ₹${Number(w.amount || 0).toFixed(0)}<br>
                 <span class="muted">UPI: ${w.upi}</span>
               </div>
               <span class="badge ${w.status}">${w.status}</span>
             </div>
             ${w.status === "pending" ? `
               <div class="row mt-2">
-                <button class="btn-sm btn-green" type="button" onclick="adminApproveWithdraw('${id}')">Approve Paid</button>
-                <button class="btn-sm btn-red" type="button" onclick="adminRefundWithdraw('${id}')">Reject & Refund</button>
+                <button class="btn-sm btn-green" type="button" onclick="adminApproveWithdraw('${safeId}')">Approve Paid</button>
+                <button class="btn-sm btn-red" type="button" onclick="adminRefundWithdraw('${safeId}')">Reject & Refund</button>
               </div>
             ` : ""}
           </div>
-        `).join("");
+        `;
+        }).join("");
       } else {
         const cfg = state.config || {};
         body.innerHTML = `
@@ -1663,90 +1734,120 @@
 
     window.syncLatestFromFirebase = syncLatestFromFirebase;
 
-    window.adminAdjustBalance = function(phone, delta) {
-      const u = state.users[phone] || { phone, balance: 0 };
+    window.adminAdjustBalance = async function(phone, delta) {
+      const p = normalizePhone(phone);
+      if (!p) return;
+      const u = state.users[p] || { phone: p, balance: 0 };
       const next = Math.max(0, Number(u.balance || 0) + delta);
-      setAuthoritativeBalance(phone, next);
+      setAuthoritativeBalance(p, next);
       renderScreenState();
       renderAdminPanel();
-      dbSetSafe(`users/${cleanKey(phone)}`, state.users[phone]);
+      await dbSetSafe(`users/${cleanKey(p)}`, state.users[p]);
     };
 
-    window.adminResetBalance = function(phone) {
-      clearAuthoritativeBalance(phone);
+    window.adminResetBalance = async function(phone) {
+      const p = normalizePhone(phone);
+      if (!p) return;
+      clearAuthoritativeBalance(p);
       renderScreenState();
       renderAdminPanel();
-      dbSetSafe(`users/${cleanKey(phone)}`, state.users[phone]);
+      await dbSetSafe(`users/${cleanKey(p)}`, state.users[p]);
     };
 
-    window.adminSetExactBalance = function(phone) {
-      const val = Number(document.getElementById(`customBal_${phone}`).value);
+    window.adminSetExactBalance = async function(phone) {
+      const p = normalizePhone(phone);
+      if (!p) return;
+      const val = Number(document.getElementById(`customBal_${p}`).value);
       if (isNaN(val) || val < 0) {
         alert("सही बैलेंस डालें।");
         return;
       }
-      setAuthoritativeBalance(phone, val);
+      setAuthoritativeBalance(p, val);
       renderScreenState();
       renderAdminPanel();
-      dbSetSafe(`users/${cleanKey(phone)}`, state.users[phone]);
+      await dbSetSafe(`users/${cleanKey(p)}`, state.users[p]);
     };
 
-    window.adminApproveDeposit = function(id) {
-      const d = state.deposits && state.deposits[id];
+    window.adminApproveDeposit = async function(id) {
+      const safeId = cleanKey(id);
+      const d = state.deposits && (state.deposits[safeId] || state.deposits[id]);
       if (!d || d.status !== "pending") return;
+
+      const p = normalizePhone(d.phone);
       const addAmt = Number(d.amount || 0);
-      const u = state.users[d.phone] || { phone: d.phone, balance: 0 };
-      const nextBal = Number(u.balance || 0) + addAmt;
+      const u = state.users[p] || { phone: p, balance: 0 };
+      const currentBal = Number(u.balance || 0);
+      const nextBal = currentBal + addAmt;
 
-      setAuthoritativeBalance(d.phone, nextBal);
-      state.deposits[id] = { ...d, status: "approved", approvedAt: Date.now(), updatedAt: Date.now() };
+      setAuthoritativeBalance(p, nextBal);
+      state.deposits[safeId] = {
+        ...d,
+        id: safeId,
+        phone: p,
+        status: "approved",
+        approvedAt: Date.now(),
+        updatedAt: Date.now()
+      };
       persistAll();
 
       renderScreenState();
       renderHistory();
       renderAdminPanel();
 
-      dbSetSafe(`users/${cleanKey(d.phone)}`, state.users[d.phone]);
-      dbSetSafe(`deposits/${cleanKey(id)}`, state.deposits[id]);
-      alert(`₹${addAmt} बैलेंस ${d.phone} के वॉलेट में जुड़ गया और लॉक हो गया!`);
+      const [uOk, dOk] = await Promise.all([
+        dbSetSafe(`users/${cleanKey(p)}`, state.users[p]),
+        dbSetSafe(`deposits/${safeId}`, state.deposits[safeId])
+      ]);
+
+      if (uOk && dOk) {
+        alert(`₹${addAmt} बैलेंस ${p} के वॉलेट में जुड़ गया और लॉक हो गया!`);
+      } else {
+        alert(`₹${addAmt} लोकल वॉलेट में जुड़ गया है, लेकिन Firebase sync में दिक्कत आई है। Rules चेक करें।`);
+      }
     };
 
-    window.adminRejectDeposit = function(id) {
-      const d = state.deposits && state.deposits[id];
+    window.adminRejectDeposit = async function(id) {
+      const safeId = cleanKey(id);
+      const d = state.deposits && (state.deposits[safeId] || state.deposits[id]);
       if (!d || d.status !== "pending") return;
-      state.deposits[id] = { ...d, status: "rejected", updatedAt: Date.now() };
+      state.deposits[safeId] = { ...d, id: safeId, status: "rejected", updatedAt: Date.now() };
       persistAll();
       renderHistory();
       renderAdminPanel();
-      dbSetSafe(`deposits/${cleanKey(id)}`, state.deposits[id]);
+      await dbSetSafe(`deposits/${safeId}`, state.deposits[safeId]);
     };
 
-    window.adminApproveWithdraw = function(id) {
-      const w = state.withdrawals && state.withdrawals[id];
+    window.adminApproveWithdraw = async function(id) {
+      const safeId = cleanKey(id);
+      const w = state.withdrawals && (state.withdrawals[safeId] || state.withdrawals[id]);
       if (!w || w.status !== "pending") return;
-      state.withdrawals[id] = { ...w, status: "approved", updatedAt: Date.now() };
+      state.withdrawals[safeId] = { ...w, id: safeId, status: "approved", updatedAt: Date.now() };
       persistAll();
       renderHistory();
       renderAdminPanel();
-      dbSetSafe(`withdrawals/${cleanKey(id)}`, state.withdrawals[id]);
+      await dbSetSafe(`withdrawals/${safeId}`, state.withdrawals[safeId]);
     };
 
-    window.adminRefundWithdraw = function(id) {
-      const w = state.withdrawals && state.withdrawals[id];
+    window.adminRefundWithdraw = async function(id) {
+      const safeId = cleanKey(id);
+      const w = state.withdrawals && (state.withdrawals[safeId] || state.withdrawals[id]);
       if (!w || w.status !== "pending") return;
-      const u = state.users[w.phone] || { phone: w.phone, balance: 0 };
+      const p = normalizePhone(w.phone);
+      const u = state.users[p] || { phone: p, balance: 0 };
       const nextBal = Number(u.balance || 0) + Number(w.amount || 0);
-      setAuthoritativeBalance(w.phone, nextBal);
-      state.withdrawals[id] = { ...w, status: "rejected", updatedAt: Date.now() };
+      setAuthoritativeBalance(p, nextBal);
+      state.withdrawals[safeId] = { ...w, id: safeId, status: "rejected", updatedAt: Date.now() };
       persistAll();
       renderScreenState();
       renderHistory();
       renderAdminPanel();
-      dbSetSafe(`users/${cleanKey(w.phone)}`, state.users[w.phone]);
-      dbSetSafe(`withdrawals/${cleanKey(id)}`, state.withdrawals[id]);
+      await Promise.all([
+        dbSetSafe(`users/${cleanKey(p)}`, state.users[p]),
+        dbSetSafe(`withdrawals/${safeId}`, state.withdrawals[safeId])
+      ]);
     };
 
-    window.adminSaveConfig = function() {
+    window.adminSaveConfig = async function() {
       const forcedRaw = document.getElementById("cfgForcedNum").value.trim();
       const forcedNumber = forcedRaw === "" ? "" : String(Math.max(0, Math.min(9, Number(forcedRaw))));
       const qrUrl = document.getElementById("cfgQrUrl").value.trim() || DEFAULT_QR_URL;
@@ -1755,7 +1856,7 @@
       state.config = { forcedNumber, qrUrl, upi, notice };
       persistAll();
       renderNoticeAndUpi();
-      dbSetSafe("config", state.config);
+      await dbSetSafe("config", state.config);
       alert("सेटिंग्स सेव हो गईं!");
     };
 
@@ -1796,19 +1897,20 @@
           const status = payout > 0 ? "Won" : "Lost";
           b.status = status;
           b.payout = payout;
-          dbSetSafe(`bets/${betId}`, b);
+          dbSetSafe(`bets/${cleanKey(betId)}`, b);
 
-          if (currentPhone && b.phone === currentPhone) {
+          const bPhone = normalizePhone(b.phone);
+          if (currentPhone && bPhone === currentPhone) {
             currentUserHadBet = true;
             if (payout > 0) currentUserWonAmount += payout;
             else currentUserLostAmount += Number(b.amount || 0);
           }
 
-          if (payout > 0 && b.phone) {
-            const u = state.users[b.phone] || { phone: b.phone, balance: 0 };
+          if (payout > 0 && bPhone) {
+            const u = state.users[bPhone] || { phone: bPhone, balance: 0 };
             const nextBal = Number(u.balance || 0) + payout;
-            setAuthoritativeBalance(b.phone, nextBal);
-            dbSetSafe(`users/${cleanKey(b.phone)}`, state.users[b.phone]);
+            setAuthoritativeBalance(bPhone, nextBal);
+            dbSetSafe(`users/${cleanKey(bPhone)}`, state.users[bPhone]);
           }
         }
       }
