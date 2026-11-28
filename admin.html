@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jalwa.Game — Admin Panel</title>
+  <style>
+    :root {
+      --bg: #070a14;
+      --card: #12182b;
+      --card-2: #1a233d;
+      --text: #f5f7ff;
+      --muted: #9aa7c7;
+      --green: #16a34a;
+      --red: #e11d48;
+      --gold: #f59e0b;
+      --accent: #3b82f6;
+      --border: rgba(255,255,255,0.09);
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 14px; }
+    .wrap { max-width: 520px; margin: 0 auto; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px; margin-top: 12px;
+    }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    input.inp {
+      width: 100%; border-radius: 10px; border: 1px solid var(--border);
+      padding: 10px 12px; font-size: 14px; color: var(--text); background: var(--card-2);
+      outline: none;
+    }
+    button { cursor: pointer; font-weight: 700; border: none; border-radius: 10px; }
+    .btn-gold { background: var(--gold); color: #111; padding: 10px 14px; width: 100%; }
+    .btn-green { background: var(--green); color: #fff; padding: 7px 11px; font-size: 12px; }
+    .btn-red { background: var(--red); color: #fff; padding: 7px 11px; font-size: 12px; }
+    .btn-sm { background: var(--card-2); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; font-size: 12px; }
+    .tabs { display: flex; gap: 6px; margin-top: 12px; overflow-x: auto; }
+    .tab-btn { background: var(--card-2); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; font-size: 12px; white-space: nowrap; }
+    .tab-btn.active { background: var(--accent); border-color: transparent; }
+    .badge { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .pending { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    .approved { background: rgba(22,163,74,0.2); color: #4ade80; }
+    .rejected { background: rgba(220,38,38,0.2); color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card flex-between">
+      <div>
+        <h3 style="margin:0;">Jalwa.Game Admin</h3>
+        <div class="muted" id="fbStatus">Firebase: Connecting...</div>
+      </div>
+      <div class="row">
+        <button class="btn-sm" type="button" onclick="syncAllFromFirebase()">↻ Sync Now</button>
+        <button class="btn-sm" type="button" id="logoutBtn" style="display:none;" onclick="logoutAdmin()">Logout</button>
+      </div>
+    </div>
+
+    <div class="card" id="lockBox">
+      <h4 style="margin:0 0 10px 0;">Admin Login</h4>
+      <label class="muted">Admin Email</label>
+      <input class="inp mt-2" type="email" id="adminEmailInput" placeholder="Admin Email डालें" autocomplete="username" />
+      <label class="muted mt-3" style="display:block;">Password</label>
+      <input class="inp mt-2" type="password" id="adminPassInput" placeholder="Password डालें" autocomplete="current-password" />
+      <button class="btn-gold mt-3" type="button" onclick="unlockAdmin()">Login to Admin Panel</button>
+    </div>
+
+    <div id="panelBox" style="display:none;">
+      <div class="tabs">
+        <button class="tab-btn active" type="button" id="tab_deposits" onclick="setTab('deposits')">Deposits</button>
+        <button class="tab-btn" type="button" id="tab_withdrawals" onclick="setTab('withdrawals')">Withdrawals</button>
+        <button class="tab-btn" type="button" id="tab_users" onclick="setTab('users')">Users</button>
+        <button class="tab-btn" type="button" id="tab_config" onclick="setTab('config')">Game/UPI</button>
+      </div>
+      <div id="contentBox" class="mt-2"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
+    const ADMIN_EMAIL = "aman637806@gmail.com";
+    const ADMIN_PASS = "Jaat@123";
+    const DEFAULT_UPI = "rohit-m956@ptyes";
+    const DEFAULT_QR_URL = "https://i.ibb.co/sp5rvQc3/Screenshot-20261128-163820-Gallery.jpg";
+    const STORAGE_KEY = "jalwa_admin_cache_v1";
+    const SESSION_KEY = "jalwa_admin_auth_v1";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1h9HIrenV2wGgfGMRY23oGzPfQ5sRTIc",
+      authDomain: "clour-game.firebaseapp.com",
+      databaseURL: "https://clour-game-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "clour-game",
+      storageBucket: "clour-game.firebasestorage.app",
+      messagingSenderId: "97849556132",
+      appId: "1:97849556132:web:37320cd7b7f23ff7693a31",
+      measurementId: "G-5WM66NSL4C"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let activeTab = "deposits";
+    let unlocked = sessionStorage.getItem(SESSION_KEY) === "1";
+    let store = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    })();
+
+    store = {
+      config: store.config || { upi: DEFAULT_UPI, qrUrl: DEFAULT_QR_URL, notice: "", forcedNumber: "" },
+      users: store.users || {},
+      deposits: store.deposits || {},
+      withdrawals: store.withdrawals || {}
+    };
+
+    function applyAuthView() {
+      document.getElementById("lockBox").style.display = unlocked ? "none" : "block";
+      document.getElementById("panelBox").style.display = unlocked ? "block" : "none";
+      document.getElementById("logoutBtn").style.display = unlocked ? "inline-block" : "none";
+      if (unlocked) render();
+    }
+
+    function saveCache() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+      } catch {}
+    }
+
+    function mergeById(localMap, remoteMap) {
+      const merged = { ...(remoteMap || {}) };
+      Object.entries(localMap || {}).forEach(([id, loc]) => {
+        if (!loc) return;
+        const rem = merged[id];
+        if (!rem) {
+          merged[id] = loc;
+        } else {
+          const locTs = Number(loc.approvedAt || loc.updatedAt || loc.time || 0);
+          const remTs = Number(rem.approvedAt || rem.updatedAt || rem.time || 0);
+          if ((loc.status === "approved" && rem.status !== "approved") || locTs > remTs) {
+            merged[id] = loc;
+          }
+        }
+      });
+      return merged;
+    }
+
+    async function writePath(path, val) {
+      saveCache();
+      try {
+        await set(ref(db, path), val);
+      } catch (e) {
+        alert("Firebase write error: " + (e.message || e));
+      }
+    }
+
+    window.unlockAdmin = async function() {
+      const email = (document.getElementById("adminEmailInput").value || "").trim().toLowerCase();
+      const pass = document.getElementById("adminPassInput").value || "";
+      if (email !== ADMIN_EMAIL.toLowerCase() || pass !== ADMIN_PASS) {
+        alert("गलत Email या Password!");
+        return;
+      }
+      unlocked = true;
+      sessionStorage.setItem(SESSION_KEY, "1");
+      document.getElementById("adminPassInput").value = "";
+      applyAuthView();
+      await syncAllFromFirebase();
+      render();
+    };
+
+    window.logoutAdmin = function() {
+      unlocked = false;
+      sessionStorage.removeItem(SESSION_KEY);
+      document.getElementById("adminPassInput").value = "";
+      applyAuthView();
+    };
+
+    window.setTab = async function(tab) {
+      activeTab = tab;
+      ["deposits", "withdrawals", "users", "config"].forEach(t => {
+        document.getElementById("tab_" + t).classList.toggle("active", t === tab);
+      });
+      await syncAllFromFirebase();
+      render();
+    };
+
+    window.syncAllFromFirebase = async function() {
+      try {
+        const [dSnap, wSnap, uSnap, cSnap] = await Promise.all([
+          get(ref(db, "deposits")),
+          get(ref(db, "withdrawals")),
+          get(ref(db, "users")),
+          get(ref(db, "config"))
+        ]);
+        if (dSnap.exists()) store.deposits = mergeById(store.deposits, dSnap.val());
+        if (wSnap.exists()) store.withdrawals = mergeById(store.withdrawals, wSnap.val());
+        if (uSnap.exists()) store.users = { ...(uSnap.val() || {}), ...store.users };
+        if (cSnap.exists()) store.config = { ...store.config, ...cSnap.val() };
+        saveCache();
+        if (unlocked) render();
+      } catch (e) {
+        console.warn("Sync error:", e);
+      }
+    };
+
+    window.approveDeposit = async function(id) {
+      const d = store.deposits[id];
+      if (!d || d.status !== "pending") return;
+      const u = store.users[d.phone] || { phone: d.phone, balance: 0 };
+      const nextBal = Number(u.balance || 0) + Number(d.amount || 0);
+      store.users[d.phone] = { ...u, phone: d.phone, balance: nextBal, updatedAt: Date.now() };
+      store.deposits[id] = { ...d, status: "approved", approvedAt: Date.now(), updatedAt: Date.now() };
+      await writePath(`users/${d.phone}`, store.users[d.phone]);
+      await writePath(`deposits/${id}`, store.deposits[id]);
+      render();
+    };
+
+    window.rejectDeposit = async function(id) {
+      const d = store.deposits[id];
+      if (!d || d.status !== "pending") return;
+      store.deposits[id] = { ...d, status: "rejected", updatedAt: Date.now() };
+      await writePath(`deposits/${id}`, store.deposits[id]);
+      render();
+    };
+
+    window.approveWithdraw = async function(id) {
+      const w = store.withdrawals[id];
+      if (!w || w.status !== "pending") return;
+      store.withdrawals[id] = { ...w, status: "approved", updatedAt: Date.now() };
+      await writePath(`withdrawals/${id}`, store.withdrawals[id]);
+      render();
+    };
+
+    window.refundWithdraw = async function(id) {
+      const w = store.withdrawals[id];
+      if (!w || w.status !== "pending") return;
+      const u = store.users[w.phone] || { phone: w.phone, balance: 0 };
+      const nextBal = Number(u.balance || 0) + Number(w.amount || 0);
+      store.users[w.phone] = { ...u, phone: w.phone, balance: nextBal, updatedAt: Date.now() };
+      store.withdrawals[id] = { ...w, status: "rejected", updatedAt: Date.now() };
+      await writePath(`users/${w.phone}`, store.users[w.phone]);
+      await writePath(`withdrawals/${id}`, store.withdrawals[id]);
+      render();
+    };
+
+    window.adjustUserBal = async function(phone, delta) {
+      const u = store.users[phone] || { phone, balance: 0 };
+      const nextBal = Math.max(0, Number(u.balance || 0) + delta);
+      store.users[phone] = { ...u, phone, balance: nextBal, updatedAt: Date.now() };
+      await writePath(`users/${phone}`, store.users[phone]);
+      render();
+    };
+
+    window.saveCfg = async function() {
+      const forcedRaw = document.getElementById("cfgForced").value.trim();
+      const forcedNumber = forcedRaw === "" ? "" : String(Math.max(0, Math.min(9, Number(forcedRaw))));
+      store.config = {
+        forcedNumber,
+        qrUrl: document.getElementById("cfgQr").value.trim() || DEFAULT_QR_URL,
+        upi: document.getElementById("cfgUpi").value.trim() || DEFAULT_UPI,
+        notice: document.getElementById("cfgNotice").value.trim()
+      };
+      await writePath("config", store.config);
+      alert("सेटिंग्स सेव हो गईं!");
+    };
+
+    function render() {
+      if (!unlocked) return;
+      const box = document.getElementById("contentBox");
+
+      if (activeTab === "deposits") {
+        const items = Object.entries(store.deposits || {})
+          .filter(([, v]) => v && typeof v === "object")
+          .sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
+        box.innerHTML = items.length ? items.map(([id, d]) => `
+          <div class="card">
+            <div class="flex-between">
+              <div>
+                <b>${d.phone}</b> · ₹${Number(d.amount || 0).toFixed(0)}<br>
+                <span class="muted">UTR: ${d.utr || "-"}</span>
+              </div>
+              <span class="badge ${d.status || "pending"}">${d.status || "pending"}</span>
+            </div>
+            ${(d.status || "pending") === "pending" ? `
+              <div class="row mt-2">
+                <button class="btn-green" type="button" onclick="approveDeposit('${id}')">Approve & Add</button>
+                <button class="btn-red" type="button" onclick="rejectDeposit('${id}')">Reject</button>
+              </div>
+            ` : ""}
+          </div>
+        `).join("") : `<div class="card muted">कोई Deposit रिक्वेस्ट नहीं है।</div>`;
+      } else if (activeTab === "withdrawals") {
+        const items = Object.entries(store.withdrawals || {})
+          .filter(([, v]) => v && typeof v === "object")
+          .sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
+        box.innerHTML = items.length ? items.map(([id, w]) => `
+          <div class="card">
+            <div class="flex-between">
+              <div>
+                <b>${w.phone}</b> · ₹${Number(w.amount || 0).toFixed(0)}<br>
+                <span class="muted">UPI: ${w.upi || "-"}</span>
+              </div>
+              <span class="badge ${w.status || "pending"}">${w.status || "pending"}</span>
+            </div>
+            ${(w.status || "pending") === "pending" ? `
+              <div class="row mt-2">
+                <button class="btn-green" type="button" onclick="approveWithdraw('${id}')">Approve Paid</button>
+                <button class="btn-red" type="button" onclick="refundWithdraw('${id}')">Reject & Refund</button>
+              </div>
+            ` : ""}
+          </div>
+        `).join("") : `<div class="card muted">कोई Withdrawal रिक्वेस्ट नहीं है।</div>`;
+      } else if (activeTab === "users") {
+        const users = Object.values(store.users || {});
+        box.innerHTML = users.length ? users.map(u => `
+          <div class="card flex-between">
+            <div>
+              <b>${u.phone}</b><br>
+              <span class="muted">Balance: ₹${Number(u.balance || 0).toFixed(2)}</span>
+            </div>
+            <div class="row">
+              <button class="btn-green" type="button" onclick="adjustUserBal('${u.phone}', 1000)">+₹1000</button>
+              <button class="btn-red" type="button" onclick="adjustUserBal('${u.phone}', -Number(${Number(u.balance || 0)}))">Reset ₹0</button>
+            </div>
+          </div>
+        `).join("") : `<div class="card muted">कोई User नहीं मिला।</div>`;
+      } else {
+        const c = store.config || {};
+        box.innerHTML = `
+          <div class="card">
+            <label class="muted">Forced Number (0-9)</label>
+            <input class="inp mt-2" type="number" id="cfgForced" min="0" max="9" value="${c.forcedNumber ?? ""}" />
+            <label class="muted mt-3" style="display:block;">QR URL</label>
+            <input class="inp mt-2" type="text" id="cfgQr" value="${c.qrUrl || DEFAULT_QR_URL}" />
+            <label class="muted mt-3" style="display:block;">UPI ID</label>
+            <input class="inp mt-2" type="text" id="cfgUpi" value="${c.upi || DEFAULT_UPI}" />
+            <label class="muted mt-3" style="display:block;">Notice</label>
+            <input class="inp mt-2" type="text" id="cfgNotice" value="${c.notice || ""}" />
+            <button class="btn-gold mt-3" type="button" onclick="saveCfg()">Save Settings</button>
+          </div>
+        `;
+      }
+    }
+
+    applyAuthView();
+
+    onValue(ref(db, ".info/connected"), (s) => {
+      const el = document.getElementById("fbStatus");
+      if (!el) return;
+      el.textContent = s.val() === true ? "Firebase: Connected" : "Firebase: Connecting...";
+      el.style.color = s.val() === true ? "#4ade80" : "#fbbf24";
+    });
+
+    onValue(ref(db, "deposits"), (s) => {
+      store.deposits = mergeById(store.deposits, s.exists() ? s.val() : {});
+      saveCache();
+      render();
+    });
+
+    onValue(ref(db, "withdrawals"), (s) => {
+      store.withdrawals = mergeById(store.withdrawals, s.exists() ? s.val() : {});
+      saveCache();
+      render();
+    });
+
+    onValue(ref(db, "users"), (s) => {
+      store.users = { ...(s.exists() ? s.val() : {}), ...store.users };
+      saveCache();
+      render();
+    });
+
+    onValue(ref(db, "config"), (s) => {
+      if (s.exists()) {
+        store.config = { ...store.config, ...s.val() };
+        saveCache();
+      }
+    });
+  </script>
+</body>
+</html>
