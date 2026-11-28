@@ -246,7 +246,6 @@
     .mt-3 { margin-top: 12px; }
     .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
-    /* QR Payment Box */
     .qr-box {
       background: #ffffff;
       color: #0f172a;
@@ -276,7 +275,6 @@
       font-weight: 700; font-size: 13px; margin-top: 8px;
     }
 
-    /* Win / Loss Result Logo Card */
     .result-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.78);
       display: none; align-items: center; justify-content: center;
@@ -546,7 +544,7 @@
     </div>
   </div>
 
-  <!-- Deposit Modal (QR Added + Auto UPI App Redirect) -->
+  <!-- Deposit Modal -->
   <div class="modal-bg" id="depositModal">
     <div class="modal">
       <div class="flex-between">
@@ -876,6 +874,26 @@
       return merged;
     }
 
+    function mergeRecordsById(localMap, remoteMap) {
+      const merged = { ...(remoteMap || {}) };
+      Object.entries(localMap || {}).forEach(([id, locItem]) => {
+        if (!locItem) return;
+        const remItem = merged[id];
+        if (!remItem) {
+          merged[id] = locItem;
+        } else {
+          const locTime = Number(locItem.approvedAt || locItem.updatedAt || locItem.time || 0);
+          const remTime = Number(remItem.approvedAt || remItem.updatedAt || remItem.time || 0);
+          if (locItem.status === "approved" && remItem.status !== "approved") {
+            merged[id] = locItem;
+          } else if (locTime > remTime) {
+            merged[id] = locItem;
+          }
+        }
+      });
+      return merged;
+    }
+
     state.users = mergeUsersWithMasterLock(state.users);
     persistAll();
 
@@ -883,6 +901,7 @@
       const el = document.getElementById(id);
       if (el) el.classList.add("open");
       if (id === "depositModal") updateUpiIntentLink();
+      if (id === "adminPanelModal") renderAdminPanel();
     }
 
     function closeModal(id) {
@@ -950,6 +969,39 @@
       setTimeout(() => { if (inp) inp.focus(); }, 80);
     }
 
+    async function syncLatestFromFirebase() {
+      if (!fb || !fb.get) return;
+      try {
+        const [depSnap, wdSnap, usrSnap, cfgSnap] = await Promise.all([
+          fb.get(fb.ref(fb.db, "deposits")),
+          fb.get(fb.ref(fb.db, "withdrawals")),
+          fb.get(fb.ref(fb.db, "users")),
+          fb.get(fb.ref(fb.db, "config"))
+        ]);
+
+        if (cfgSnap && cfgSnap.exists()) {
+          state.config = { ...state.config, ...cfgSnap.val() };
+          renderNoticeAndUpi();
+        }
+        if (usrSnap && usrSnap.exists()) {
+          state.users = mergeUsersWithMasterLock(usrSnap.val());
+        }
+        if (depSnap && depSnap.exists()) {
+          state.deposits = mergeRecordsById(state.deposits, depSnap.val());
+        }
+        if (wdSnap && wdSnap.exists()) {
+          state.withdrawals = mergeRecordsById(state.withdrawals, wdSnap.val());
+        }
+
+        persistAll();
+        renderScreenState();
+        renderHistory();
+        renderAdminPanel();
+      } catch (err) {
+        console.warn("Manual Firebase sync error:", err);
+      }
+    }
+
     function verifyAdminPin() {
       const pin = (document.getElementById("adminPinInput").value || "").trim();
       if (pin !== ADMIN_PIN) {
@@ -958,8 +1010,14 @@
       }
       closeModal("adminPinModal");
       currentAdminTab = "deposits";
+      ["users", "deposits", "withdrawals", "config"].forEach(t => {
+        const btnId = "admTab" + t.charAt(0).toUpperCase() + t.slice(1);
+        const el = document.getElementById(btnId);
+        if (el) el.classList.toggle("active", t === "deposits");
+      });
       openModal("adminPanelModal");
       renderAdminPanel();
+      syncLatestFromFirebase();
     }
     window.verifyAdminPin = verifyAdminPin;
 
@@ -1188,20 +1246,39 @@
       document.getElementById("betAmount").value = val;
     };
 
-    function dbSetSafe(path, val) {
-      persistAll();
-      if (!fb) return Promise.resolve();
-      return fb.set(fb.ref(fb.db, path), val).catch((err) => {
-        console.warn("Firebase set error:", err);
-      });
+    function updateSyncBadge(text, color) {
+      const el = document.getElementById("syncStatus");
+      if (!el) return;
+      el.textContent = text;
+      if (color) el.style.color = color;
     }
 
-    function dbUpdateSafe(path, val) {
+    async function dbSetSafe(path, val) {
       persistAll();
-      if (!fb) return Promise.resolve();
-      return fb.update(fb.ref(fb.db, path), val).catch((err) => {
-        console.warn("Firebase update error:", err);
-      });
+      if (!fb) {
+        updateSyncBadge("Firebase: Local Only (SDK Not Ready)", "#f87171");
+        return false;
+      }
+      try {
+        await fb.set(fb.ref(fb.db, path), val);
+        return true;
+      } catch (err) {
+        console.warn("Firebase set error on " + path + ":", err);
+        updateSyncBadge("Firebase: Sync Failed (Check DB Rules)", "#f87171");
+        return false;
+      }
+    }
+
+    async function dbUpdateSafe(path, val) {
+      persistAll();
+      if (!fb) return false;
+      try {
+        await fb.update(fb.ref(fb.db, path), val);
+        return true;
+      } catch (err) {
+        console.warn("Firebase update error on " + path + ":", err);
+        return false;
+      }
     }
 
     window.submitBet = function() {
@@ -1243,7 +1320,7 @@
       alert("बेट सफलतापूर्वक लग गई!");
     };
 
-    window.submitDeposit = function() {
+    window.submitDeposit = async function() {
       if (!currentPhone) {
         alert("पहले रजिस्टर या लॉगिन करें।");
         return;
@@ -1263,13 +1340,15 @@
       }
 
       const depId = "dep_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+      const nowTs = Date.now();
       const depositRecord = {
         id: depId,
         phone: currentPhone,
         amount: amt,
         utr: utr,
         status: "pending",
-        time: Date.now()
+        time: nowTs,
+        updatedAt: nowTs
       };
 
       if (!state.deposits || typeof state.deposits !== "object") {
@@ -1278,19 +1357,24 @@
       state.deposits[depId] = depositRecord;
 
       if (!state.users[currentPhone]) {
-        state.users[currentPhone] = { phone: currentPhone, balance: 0, createdAt: Date.now(), updatedAt: Date.now() };
+        state.users[currentPhone] = { phone: currentPhone, balance: 0, createdAt: nowTs, updatedAt: nowTs };
       }
 
       persistAll();
-      dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
-      dbSetSafe(`deposits/${depId}`, depositRecord);
+      const userSynced = await dbSetSafe(`users/${currentPhone}`, state.users[currentPhone]);
+      const depSynced = await dbSetSafe(`deposits/${depId}`, depositRecord);
 
       if (amtInput) amtInput.value = "";
       if (utrInput) utrInput.value = "";
       closeModal("depositModal");
       renderHistory();
       renderAdminPanel();
-      alert("डिपॉज़िट रिक्वेस्ट सबमिट हो गई है! अप्रूवल के बाद बैलेंस वॉलेट में जुड़ जाएगा।");
+
+      if (depSynced && userSynced) {
+        alert("डिपॉज़िट रिक्वेस्ट सबमिट हो गई और सर्वर पर सिंक हो गई है! अप्रूवल के बाद बैलेंस वॉलेट में जुड़ जाएगा।");
+      } else {
+        alert("डिपॉज़िट रिक्वेस्ट लोकल में सेव हो गई है, लेकिन Firebase सर्वर सिंक में समस्या आई है। कृपया Firebase Database Rules जांचें।");
+      }
     };
 
     window.submitWithdraw = function() {
@@ -1319,14 +1403,16 @@
       const newBal = bal - amt;
       setAuthoritativeBalance(currentPhone, newBal);
 
-      const wdId = "wd_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+      const nowTs = Date.now();
+      const wdId = "wd_" + nowTs + "_" + Math.random().toString(36).slice(2, 6);
       state.withdrawals[wdId] = {
         id: wdId,
         phone: currentPhone,
         amount: amt,
         upi,
         status: "pending",
-        time: Date.now()
+        time: nowTs,
+        updatedAt: nowTs
       };
 
       renderScreenState();
@@ -1396,14 +1482,15 @@
         currentPhone = phone;
         localStorage.setItem("jalwa_phone", phone);
 
+        const nowTs = Date.now();
         state.users[phone] = {
           phone,
           countryCode: code,
           password: pass,
           inviteCode: inviteCode || "568619351954",
           balance: 0,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
+          createdAt: nowTs,
+          updatedAt: nowTs
         };
 
         persistAll();
@@ -1438,7 +1525,10 @@
     };
 
     document.getElementById("logoutAction").onclick = doLogout;
-    document.getElementById("refreshBalBtn").onclick = renderScreenState;
+    document.getElementById("refreshBalBtn").onclick = () => {
+      renderScreenState();
+      syncLatestFromFirebase();
+    };
     document.getElementById("backBtn").onclick = () => {
       if (currentPhone) doLogout();
       else window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1483,21 +1573,31 @@
           </div>
         `).join("");
       } else if (currentAdminTab === "deposits") {
-        const entries = Object.entries(state.deposits || {}).sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
+        const entries = Object.entries(state.deposits || {})
+          .filter(([, d]) => d && typeof d === "object")
+          .sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
+
+        const headerHtml = `
+          <div class="flex-between mb-2">
+            <span class="muted">Total Requests: ${entries.length}</span>
+            <button class="btn-sm" type="button" onclick="syncLatestFromFirebase()">↻ Refresh Sync</button>
+          </div>
+        `;
+
         if (!entries.length) {
-          body.innerHTML = `<div class="muted">कोई डिपॉज़िट रिक्वेस्ट नहीं है।</div>`;
+          body.innerHTML = headerHtml + `<div class="muted">कोई डिपॉज़िट रिक्वेस्ट नहीं है।</div>`;
           return;
         }
-        body.innerHTML = entries.map(([id, d]) => `
+        body.innerHTML = headerHtml + entries.map(([id, d]) => `
           <div class="card" style="margin-top:8px;">
             <div class="flex-between">
               <div>
-                <b>${d.phone}</b> · ₹${Number(d.amount || 0).toFixed(0)}<br>
-                <span class="muted">UTR: ${d.utr}</span>
+                <b>${d.phone || "Unknown"}</b> · ₹${Number(d.amount || 0).toFixed(0)}<br>
+                <span class="muted">UTR: ${d.utr || "-"}</span>
               </div>
-              <span class="badge ${d.status}">${d.status}</span>
+              <span class="badge ${d.status || "pending"}">${d.status || "pending"}</span>
             </div>
-            ${d.status === "pending" ? `
+            ${(d.status || "pending") === "pending" ? `
               <div class="row mt-2">
                 <button class="btn-sm btn-green" type="button" onclick="adminApproveDeposit('${id}')">Approve & Add</button>
                 <button class="btn-sm btn-red" type="button" onclick="adminRejectDeposit('${id}')">Reject</button>
@@ -1506,7 +1606,9 @@
           </div>
         `).join("");
       } else if (currentAdminTab === "withdrawals") {
-        const entries = Object.entries(state.withdrawals || {}).sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
+        const entries = Object.entries(state.withdrawals || {})
+          .filter(([, w]) => w && typeof w === "object")
+          .sort((a, b) => (b[1].time || 0) - (a[1].time || 0));
         if (!entries.length) {
           body.innerHTML = `<div class="muted">कोई विड्रॉल रिक्वेस्ट नहीं है।</div>`;
           return;
@@ -1544,6 +1646,8 @@
       }
     }
 
+    window.syncLatestFromFirebase = syncLatestFromFirebase;
+
     window.adminAdjustBalance = function(phone, delta) {
       const u = state.users[phone] || { phone, balance: 0 };
       const next = Math.max(0, Number(u.balance || 0) + delta);
@@ -1580,7 +1684,7 @@
       const nextBal = Number(u.balance || 0) + addAmt;
 
       setAuthoritativeBalance(d.phone, nextBal);
-      state.deposits[id] = { ...d, status: "approved", approvedAt: Date.now() };
+      state.deposits[id] = { ...d, status: "approved", approvedAt: Date.now(), updatedAt: Date.now() };
       persistAll();
 
       renderScreenState();
@@ -1595,7 +1699,7 @@
     window.adminRejectDeposit = function(id) {
       const d = state.deposits && state.deposits[id];
       if (!d || d.status !== "pending") return;
-      state.deposits[id] = { ...d, status: "rejected" };
+      state.deposits[id] = { ...d, status: "rejected", updatedAt: Date.now() };
       persistAll();
       renderHistory();
       renderAdminPanel();
@@ -1605,7 +1709,7 @@
     window.adminApproveWithdraw = function(id) {
       const w = state.withdrawals && state.withdrawals[id];
       if (!w || w.status !== "pending") return;
-      state.withdrawals[id] = { ...w, status: "approved" };
+      state.withdrawals[id] = { ...w, status: "approved", updatedAt: Date.now() };
       persistAll();
       renderHistory();
       renderAdminPanel();
@@ -1618,7 +1722,7 @@
       const u = state.users[w.phone] || { phone: w.phone, balance: 0 };
       const nextBal = Number(u.balance || 0) + Number(w.amount || 0);
       setAuthoritativeBalance(w.phone, nextBal);
-      state.withdrawals[id] = { ...w, status: "rejected" };
+      state.withdrawals[id] = { ...w, status: "rejected", updatedAt: Date.now() };
       persistAll();
       renderScreenState();
       renderHistory();
@@ -1752,14 +1856,10 @@
       const { db: database, ref, set, onValue } = sdk;
 
       onValue(ref(database, ".info/connected"), (snap) => {
-        const el = document.getElementById("syncStatus");
-        if (!el) return;
         if (snap.val() === true) {
-          el.textContent = "Firebase: Connected";
-          el.style.color = "#4ade80";
+          updateSyncBadge("Firebase: Connected", "#4ade80");
         } else {
-          el.textContent = "Firebase: Connecting...";
-          el.style.color = "#fbbf24";
+          updateSyncBadge("Firebase: Connecting...", "#fbbf24");
         }
       });
 
@@ -1784,15 +1884,7 @@
 
       onValue(ref(database, "deposits"), (snap) => {
         const remoteDeps = snap.exists() ? snap.val() : {};
-        const merged = { ...remoteDeps };
-        Object.keys(state.deposits || {}).forEach((id) => {
-          const locD = state.deposits[id];
-          const remD = remoteDeps[id];
-          if (!remD || (remD.status === "pending" && locD.status === "approved")) {
-            merged[id] = locD;
-          }
-        });
-        state.deposits = merged;
+        state.deposits = mergeRecordsById(state.deposits, remoteDeps);
         persistAll();
         renderHistory();
         renderAdminPanel();
@@ -1800,7 +1892,7 @@
 
       onValue(ref(database, "withdrawals"), (snap) => {
         const remoteWds = snap.exists() ? snap.val() : {};
-        state.withdrawals = { ...remoteWds, ...state.withdrawals };
+        state.withdrawals = mergeRecordsById(state.withdrawals, remoteWds);
         persistAll();
         renderHistory();
         renderAdminPanel();
@@ -1808,7 +1900,7 @@
 
       onValue(ref(database, "bets"), (snap) => {
         const remoteBets = snap.exists() ? snap.val() : {};
-        state.bets = { ...remoteBets, ...state.bets };
+        state.bets = mergeRecordsById(state.bets, remoteBets);
         persistAll();
         renderHistory();
       });
